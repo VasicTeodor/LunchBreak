@@ -1,0 +1,113 @@
+﻿@page "/restaurants/addrestaurant"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAlertify Alertify
+@inject IAuthService AuthService
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <div class="row my-2 pt-md-5 mt-md-3">
+                            <div class="col">
+                                <h2>Add New Restaurant</h2>
+                            </div>
+                        </div>
+                        <div class="row justify-content-center">
+                            <div class="col-8">
+                                <EditForm Model="@restaurant" OnValidSubmit="@HandleValidSubmit">
+
+                                    <div class="form-group">
+                                        <label for="name">Name:</label>
+                                        <InputText type="text" class="form-control" id="name" @bind-Value="restaurant.Name" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="type">Type :</label>
+                                        <InputText type="text" class="form-control" id="type" @bind-Value="restaurant.Type" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="address">Address:</label>
+                                        <InputText type="text" class="form-control" id="address" @bind-Value="restaurant.Address" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mail">Email:</label>
+                                        <InputText type="text" class="form-control" id="mail" @bind-Value="restaurant.Email" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone">Phone:</label>
+                                        <InputText type="text" class="form-control" id="phone" @bind-Value="restaurant.Phone" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="website">Website:</label>
+                                        <InputText type="text" class="form-control" id="website" @bind-Value="restaurant.Website" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="description">Description:</label>
+                                        <textarea rows="4" class="form-control" id="description" @bind-value="restaurant.Description" @bind-value:event="oninput"></textarea>
+                                    </div>
+                                    <div class="text-danger text-center">
+                                        <DataAnnotationsValidator />
+                                        <ValidationSummary />
+                                        <label>@error</label>
+                                    </div>
+                                    <div class="font-weight-bold text-center">
+                                        <button type="submit" class="btn btn-secondary mr-2">Add Restaurant</button>
+                                        <button type="submit" class="btn btn-secondary" @onclick="@Cancel">Cancel</button>
+                                    </div>
+                                </EditForm>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private RestaurantDto restaurant = new RestaurantDto();
+    private string error = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var isEditor = await AuthService.IsUserEditor();
+        if (!isEditor)
+        {
+            await Alertify.Error("You don't have access!");
+            NavigationManager.NavigateTo("restaurants");
+        }
+    }
+
+    private async void HandleValidSubmit()
+    {
+        var response = await HttpRequest.HttpPost<OperationSuccessResponse>("api/restaurant", restaurant);
+        Console.WriteLine(response);
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                await Alertify.Success("Successfuly added restaurant");
+                NavigationManager.NavigateTo("restaurants");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+            Cancel();
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("restaurants");
+    }
+}

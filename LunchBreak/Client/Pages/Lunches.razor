@@ -1,0 +1,205 @@
+﻿@page "/lunches"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@inject IAlertify Alertify
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row pt-md-5 mt-md-3">
+                    <h2 class="ml-2">All Lunches</h2>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <h3 class="text-muted text-center mb-3">List of lunches</h3>
+                        @if (lunches == null)
+                        {
+                            if (string.IsNullOrEmpty(error))
+                            {
+                                <h4 class="text-center">Loading...</h4>
+                            }
+                            else
+                            {
+                                <h4 class="text-center text-danger">Error: @error</h4>
+                            }
+                        }
+                        else
+                        {
+                            <table class="table table-dark table-hover text-center">
+                                <thead>
+                                    <tr class="text-muted">
+                                        <th>Name</th>
+                                        <th>Restaurant</th>
+                                        <th>Delivery</th>
+                                        <th>Valid From</th>
+                                        <th>Valid To</th>
+                                        <th>Website</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var lunch in lunches)
+                                    {
+                                        <tr>
+                                            <th>@lunch.Name</th>
+                                            <td>@lunch.Restaurant</td>
+                                            <td>@lunch.FreeDelivery</td>
+                                            <td>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</td>
+                                            <td>@lunch.ValidTo.ToString("dddd, dd MMMM yyyy")</td>
+                                            <td>@lunch.LinkToMenu</td>
+                                            @if (lunch.IsPublic.Equals("Public"))
+                                            {
+                                                <td>
+                                                    <span class="badge badge-success w-75 py-2">@lunch.IsPublic</span>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>
+                                                    <span class="badge badge-danger w-75 py-2">@lunch.IsPublic</span>
+                                                </td>
+                                            }
+                                            @if (isAdmin)
+                                            {
+                                                <td>
+                                                    <p class="text-danger font-weight-bold" style="cursor: pointer" @onclick="@(async () => await ApproveLunch(lunch.Id))"><u>Approve</u></p>
+                                                </td>
+                                            }
+                                            @if (isAdmin || userId == lunch.CreatedBy)
+                                            {
+                                                <td class="p-1">
+                                                    <i class="fas fa-times fa-2x text-danger" style="cursor: pointer" @onclick="@(async () => await RemoveLunch(lunch.Id))"></i>
+                                                </td>
+                                            }
+                                            <td class="p-1">
+                                                <i class="fas fa-search-plus fa-2x text-primary" style="cursor: pointer" @onclick="@(() => LunchDetails(lunch.Id))"></i>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <!-- pagination -->
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item">
+                                        <a href="#" class="page-link py-2 px-3">
+                                            <span>Previous</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a href="#" class="page-link py-2 px-3">
+                                            <span>Next</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <!-- end of pagination -->
+                        }
+                    </div>
+                </div>
+                <hr />
+                <div class="row justify-content-center text-center">
+                    <div class="col-4">
+                        <button class="btn btn-secondary w-75 py-2" @onclick="@OnAddNewLunchBreak">Add New Lunch Break</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<LunchDto> lunches;
+    private string error = "";
+    private bool isAdmin = false;
+    private bool isEditor = false;
+    private string userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAdmin = await AuthService.IsUserAdmin();
+        isEditor = await AuthService.IsUserEditor();
+        userId = await AuthService.GetUserId();
+
+        var response = await HttpRequest.HttpGet<GetLunches>("api/lunchbreak/lunches");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunches = response.Lunches;
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private async Task RemoveLunch(string lunchId)
+    {
+        var response = await HttpRequest.HttpDelete<OperationSuccessResponse>($"api/lunchbreak/remove/{lunchId}", "");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                await Alertify.Success("Successfuly removed lunch break");
+                await OnInitializedAsync();
+            }
+            else
+            {
+                error = response.Error;
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private async Task ApproveLunch(string lunchId)
+    {
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approvelunch/{lunchId}","");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunches = null;
+                await Alertify.Success("Lunch break approved");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private void OnAddNewLunchBreak()
+    {
+        NavigationManager.NavigateTo("lunches/addlunchbreak");
+    }
+
+    private void LunchDetails(string lunchId)
+    {
+        NavigationManager.NavigateTo($"lunches/lunch/{lunchId}");
+    }
+}

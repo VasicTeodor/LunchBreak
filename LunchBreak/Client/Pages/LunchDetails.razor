@@ -1,0 +1,198 @@
+﻿@page "/lunches/lunch/{lunchId}"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@inject IAlertify Alertify
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <div class="row my-2 pt-md-5 mt-md-3">
+                            <div class="col">
+                                <h2>Lunch</h2>
+                            </div>
+                        </div>
+                        @if (lunch != null)
+                        {
+                            <div class="row justify-content-center mb-1">
+                                <div class="font-weight-bold text-center">
+                                    @if(lunch.CreatedBy == userId || isEditor)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Lunch</button>
+                                    }
+                                    @if (!onLunch)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(() => JoinLunch())">Join Lunch</button>
+                                    }
+                                    <button class="btn btn-secondary" @onclick="@Cancel">Back</button>
+                                </div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-8">
+                                    <div class="text-left">
+                                        <p class="mb-0">Name: <strong>@lunch.Name</strong></p>
+                                        <p class="mb-0">Restaurant: <strong>@lunch.Restaurant</strong></p>
+                                        <p class="mb-0">Restaurant Website: <a href="@lunch.LinkToMenu">@lunch.Restaurant</a></p>
+                                        <p class="mb-0">Type Of Lunch: <strong>@lunch.IsPublic</strong></p>
+                                        @if (lunch.FreeDelivery == "Private")
+                                        {
+                                            <p class="mb-0">Team ID: <strong>@lunch.TeamId</strong></p>
+                                        }
+                                        <p class="mb-0">Delivery: <strong>@lunch.FreeDelivery</strong></p>
+                                        @if (lunch.FreeDelivery == "Paid")
+                                        {
+                                            <p class="mb-0">Delivery Price: <strong>@lunch.DeliveryPrice</strong></p>
+                                        }
+                                        <p class="mb-0">Valid From: <strong>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</strong></p>
+                                        <p class="mb-0">Valid To: <strong>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</strong></p>
+                                        <p class="mb-0">Total Price: <strong>@lunch.TotalPrice</strong></p>
+                                    </div>
+                                    <div class="text-center">
+                                        <hr />
+                                        <p>Description:</p>
+                                        <p>@lunch.Description</p>
+                                        <hr />
+                                    </div>
+                                    @if (lunch.Orders != null && lunch.Orders.Count > 0)
+                                    {
+                                        <h5 class="text-center">Orders:</h5>
+                                        @foreach (var order in lunch.Orders)
+                                        {
+                                            <div class="card mb-1">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-8 pl-5">
+                                                            <p class="mb-1"><strong>Order:</strong></p>
+                                                            <p class="ml-2 mb-0">@order.OrderText</p>
+                                                            <p class="mb-1"><strong>Comment:</strong></p>
+                                                            <p class="ml-2 mb-0">@order.Comment</p>
+                                                            <p><strong>Price: </strong>@order.Price</p>
+                                                        </div>
+                                                        @if (isAdmin || order.UserId == userId)
+                                                        {
+                                                            <div class="col-4 text-right">
+                                                                <div class="d-inline">
+                                                                    <i class="fas fa-edit fa-2x text-primary mr-1" style="cursor:pointer" @onclick="@(() => EditOrder(order.Id))"></i>
+                                                                    <i class="fas fa-times fa-2x text-danger" style="cursor:pointer" @onclick="@(() => RemoveOrder(order.Id))"></i>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <p class="text-center mb-0"><strong>Order by: </strong>@order.UserName</p>
+                                                </div>
+                                            </div>
+                                            
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row justify-content-center">
+                                <div class="col-8">
+                                    @if (string.IsNullOrEmpty(error))
+                                    {
+                                        <h4 class="text-center">Loading...</h4>
+                                    }
+                                    else
+                                    {
+                                        <h4 class="text-center text-danger">Error: @error</h4>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string LunchId { get; set; }
+    private LunchDto lunch;
+    private string error = null;
+    private bool onLunch = false;
+    private bool isEditor = false;
+    private bool isAdmin = false;
+    private string userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await AuthService.GetUserId();
+        isEditor = await AuthService.IsUserEditor();
+        isAdmin = await AuthService.IsUserAdmin();
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunch = response.Lunch;
+                onLunch = lunch.Orders.Any(order => order.UserId == userId);
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+            Cancel();
+        }
+    }
+
+    private void Edit()
+    {
+        NavigationManager.NavigateTo($"lunches/editlunchbreak/{LunchId}");
+    }
+
+    private async void RemoveOrder(string orderId)
+    {
+        lunch.Orders.Remove(lunch.Orders.First(o => o.Id == orderId));
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/lunchbreak", lunch);
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunch = null;
+                await Alertify.Success("Successfuly deleted order");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private void EditOrder(string orderId)
+    {
+        NavigationManager.NavigateTo($"lunches/editorder/{LunchId}+{orderId}");
+    }
+
+    private void JoinLunch()
+    {
+        NavigationManager.NavigateTo($"lunches/joinLunch/{LunchId}");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("lunches");
+    }
+}

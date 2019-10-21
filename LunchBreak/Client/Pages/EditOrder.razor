@@ -1,0 +1,147 @@
+﻿@page "/lunches/editorder/{data}"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAlertify Alertify
+@inject IAuthService AuthService
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        @if (lunch == null)
+                        {
+                            <div class="row justify-content-center">
+                                <div class="col-8">
+                                    <h4 class="text-center">Loading...</h4>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row my-2 pt-md-5 mt-md-3">
+                                <div class="col">
+                                    <h2>Join Lunch Break</h2>
+                                </div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-10">
+                                    <EditForm Model="@order" OnValidSubmit="@HandleValidSubmit">
+
+                                        <div class="form-group">
+                                            <label for="orderText">Order Item:</label>
+                                            <InputText type="text" class="form-control" id="orderText" @bind-Value="order.OrderText" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="orderComment">Order Comment:</label>
+                                            <textarea rows="4" class="form-control" id="orderComment" @bind-value="order.Comment" @bind-value:event="oninput"></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="form-group">
+                                                <div class="col-6">
+                                                    <label for="orderPrice">Item Price:</label>
+                                                </div>
+                                                <div class="col-6">
+                                                    <InputNumber type="number" class="form-control" id="orderPrice" @bind-Value="order.Price" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr />
+                                        <div class="text-danger text-center">
+                                            <DataAnnotationsValidator />
+                                            <ValidationSummary />
+                                            <label>@error</label>
+                                        </div>
+                                        <div class="font-weight-bold text-center">
+                                            <button type="submit" class="btn btn-primary mr-2">Update Order</button>
+                                            <button type="submit" class="btn btn-primary" @onclick="@OnCancel">Cancel</button>
+                                        </div>
+                                    </EditForm>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@code {
+    [Parameter]
+    public string Data { get; set; }
+    private string LunchId { get; set; }
+    private string OrderId { get; set; }
+
+    private LunchDto lunch;
+    private OrderDto order = new OrderDto() { Id = Guid.NewGuid().ToString() };
+    private string error = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LunchId = Data.Split('+')[0];
+        OrderId = Data.Split('+')[1];
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunch = response.Lunch;
+                order = lunch.Orders.FirstOrDefault(o => o.Id == OrderId);
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+            OnCancel();
+        }
+    }
+
+    private async void HandleValidSubmit()
+    {
+        order.UserId = await AuthService.GetUserId();
+        order.UserName = await AuthService.GetUser();
+
+        if (lunch.Orders != null)
+        {
+            lunch.Orders.Remove(lunch.Orders.FirstOrDefault(o => o.Id == OrderId));
+            lunch.Orders.Add(order);
+        }
+        else
+        {
+            lunch.Orders = new List<OrderDto>() { order };
+        }
+
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/lunchbreak", lunch);
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                await Alertify.Success("Successfuly updated order");
+                NavigationManager.NavigateTo($"lunches/lunch/{LunchId}");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo($"lunches/lunch/{LunchId}");
+    }
+}

@@ -1,0 +1,236 @@
+﻿@page "/restaurants/restaurant/{restaurantId}"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@inject IAlertify Alertify
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <div class="row my-2 pt-md-5 mt-md-3">
+                            <div class="col">
+                                <h2>Restaurant</h2>
+                            </div>
+                        </div>
+                        @if (restaurant != null)
+                        {
+                            <div class="row justify-content-center">
+                                <div class="font-weight-bold text-center">
+                                    <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Restaurant</button>
+                                    <button class="btn btn-secondary" @onclick="@Cancel">Back</button>
+                                </div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-8">
+                                    <div class="text-left">
+                                        <p class="mb-0">Restaurant Name: <strong>@restaurant.Name</strong></p>
+                                        <p class="mb-0">Restaurant Type: <strong>@restaurant.Type</strong></p>
+                                        <p class="mb-0">Address: <strong>@restaurant.Address</strong></p>
+                                        <p class="mb-0">Email: <strong>@restaurant.Email</strong></p>
+                                        <p class="mb-0">Phone: <strong>@restaurant.Phone</strong></p>
+                                        <p class="mb-0">Website: <a href="@restaurant.Website">@restaurant.Name</a></p>
+                                        <p class="mb-0">Grade: <strong>@restaurant.Grade / 10</strong></p>
+                                        <p class="mb-0"><strong>Description:</strong></p>
+                                        <p class="mb-0 ml-2">@restaurant.Description</p>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                                @if (restaurant.Comments != null && restaurant.Comments.Count > 0)
+                                {
+                                    <hr />
+                                    <div class="row justify-content-center">
+                                        <div class="col-8">
+                                            <h5 class="text-center">Comments:</h5>
+                                            @foreach (var comment in restaurant.Comments)
+                                            {
+                                                <div class="card mb-1">
+                                                    <div class="card-body text-center">
+                                                        <div class="row">
+                                                            <div class="col-8 pl-3">
+                                                                <p class="mb-1"><strong>Comment Text:</strong></p>
+                                                                <p class="ml-2">@comment.Text</p>
+                                                            </div>
+                                                            <div class="col-4 text-right">
+                                                                <div class="d-inline">
+                                                                    <i class="fas fa-check fa-2x text-success mr-1" style="cursor:pointer" @onclick="@(() => ApproveComment(comment.Id))"></i>
+                                                                    <i class="fas fa-times fa-2x text-danger" style="cursor:pointer" @onclick="@(() => RemoveComment(comment.Id))"></i>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <hr />
+                                                        <div class="row mb-2">
+                                                            <div class="col-5 text-left">
+                                                                <p>Comment by: <strong>@comment.UserName</strong> <span class="text-muted font-italic">(@comment.Date.ToString("dddd, dd MMMM yyyy"))</span></p>
+                                                            </div>
+                                                            <div class="col-5 text-right">
+                                                                <p>Grade: <strong>@comment.Grade / 10</strong></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                        <hr />
+                                <div class="row justify-content-center">
+                                    <div class="col-8">
+                                            <h5 class="text-center">Leave comment:</h5>
+                                        <div class="card card-body text-center">
+                                            <EditForm Model="@comment" OnValidSubmit="@HandleValidSubmit">
+
+                                                <div class="form-group">
+                                                    <label for="comment">Comment:</label>
+                                                    <textarea rows="3" class="form-control" id="comment" @bind-value="comment.Text" @bind-value:event="oninput"></textarea>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="grade">Restaurant grade from 1 to 10:</label>
+                                                    <InputNumber type="number" class="form-control" id="grade" @bind-Value="comment.Grade" />
+                                                </div>
+                                                <hr />
+                                                <div class="text-danger text-center">
+                                                    <DataAnnotationsValidator />
+                                                    <ValidationSummary />
+                                                    <label>@error</label>
+                                                </div>
+                                                <div class="font-weight-bold text-center">
+                                                    <button type="submit" class="btn btn-primary mr-2">Leave Comment</button>
+                                                </div>
+                                            </EditForm>
+                                        </div>
+                                    </div>
+                                </div>
+                                        <hr />
+                        }
+                        else
+                        {
+                            <div class="row justify-content-center">
+                                <div class="col-8">
+                                    <h4 class="text-center">Loading...</h4>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string RestaurantId { get; set; }
+    private RestaurantDto restaurant;
+    private CommentDto comment = new CommentDto() { Id = Guid.NewGuid().ToString()};
+    private string error = null;
+    private bool isAdmin = false;
+    private bool isEditor = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAdmin = await AuthService.IsUserAdmin();
+        isEditor = await AuthService.IsUserEditor();
+
+        var response = await HttpRequest.HttpGet<GetRestaurant>($"api/restaurant/restaurant/{RestaurantId}");
+
+        if (response.Successful)
+        {
+            restaurant = response.Restaurant;
+        }
+        else
+        {
+            error = response.Errors.ToList().First();
+        }
+    }
+
+    private async void HandleValidSubmit()
+    {
+        comment.UserId = await AuthService.GetUserId();
+        comment.UserName = await AuthService.GetUser();
+        comment.Date = DateTime.Now;
+
+        if(restaurant.Comments != null)
+        {
+            restaurant.Comments.Add(comment);
+        }
+        else
+        {
+            restaurant.Comments = new List<CommentDto>() { comment };
+        }
+
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/restaurant", restaurant);
+
+
+        if (response.Successful)
+        {
+            restaurant = null;
+            await OnInitializedAsync();
+            this.StateHasChanged();
+            NavigationManager.NavigateTo($"/restaurants/restaurant/{RestaurantId}");
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(response.Error))
+            {
+                error = response.Error;
+            }
+        }
+    }
+
+    private async void RemoveComment(string commentId)
+    {
+        restaurant.Comments.Remove(restaurant.Comments.First(c => c.Id == commentId));
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/restaurant", restaurant);
+
+
+        if (response.Successful)
+        {
+            restaurant = null;
+            await OnInitializedAsync();
+            this.StateHasChanged();
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(response.Error))
+            {
+                error = response.Error;
+            }
+        }
+    }
+
+    private async void ApproveComment(string commentId)
+    {
+        var data = $"{restaurant.Id}+{commentId}";
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approvecomment/{data}","");
+
+
+        if (response.Successful)
+        {
+            restaurant = null;
+            await OnInitializedAsync();
+            this.StateHasChanged();
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(response.Error))
+            {
+                error = response.Error;
+            }
+        }
+    }
+
+    private void Edit()
+    {
+        NavigationManager.NavigateTo($"restaurants/editrestaurant/{RestaurantId}");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("restaurants");
+    }
+}

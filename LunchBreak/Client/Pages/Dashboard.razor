@@ -1,0 +1,113 @@
+﻿@page "/"
+@inject IHttpRequest HttpRequest
+@inject IAlertify Alertify
+@inject IAuthService AuthService
+
+<Cards></Cards>
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <h3 class="text-muted text-center mb-3">List of lunches</h3>
+                        @if(lunches == null)
+                        {
+                            <h4 class="text-center">Loading...</h4>
+                        }
+                        else
+                        {
+                            <table class="table table-dark table-hover text-center">
+                                <thead>
+                                    <tr class="text-muted">
+                                        <th>Name</th>
+                                        <th>Restaurant</th>
+                                        <th>Delivery</th>
+                                        <th>Valid From</th>
+                                        <th>Valid To</th>
+                                        <th>Website</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach(var lunch in lunches)
+                                    {
+                                    <tr>
+                                        <th>@lunch.Name</th>
+                                        <td>@lunch.Restaurant</td>
+                                        <td>@lunch.FreeDelivery</td>
+                                        <td>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</td>
+                                        <td>@lunch.ValidTo.ToString("dddd, dd MMMM yyyy")</td>
+                                        <td>@lunch.LinkToMenu</td>
+                                        @if (lunch.IsPublic.Equals("Public"))
+                                        {
+                                            <td>
+                                                <span class="badge badge-success w-75 py-2">@lunch.IsPublic</span>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td>
+                                                <span class="badge badge-danger w-75 py-2">@lunch.IsPublic</span>
+                                            </td>
+                                        }
+                                    </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <!-- pagination -->
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item">
+                                        <a href="#" class="page-link py-2 px-3">
+                                            <span>Previous</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a href="#" class="page-link py-2 px-3">
+                                            <span>Next</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <!-- end of pagination -->
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<LunchDto> lunches;
+    private string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var url = "api/lunchbreak/lunches";
+
+        var isAdmin = await AuthService.IsUserAdmin();
+        if(isAdmin)
+        {
+            url = "api/lunchbreak/lunches?isAdmin=true";
+        }
+
+        var response = await HttpRequest.HttpGet<GetLunches>(url);
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunches = response.Lunches;
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+}

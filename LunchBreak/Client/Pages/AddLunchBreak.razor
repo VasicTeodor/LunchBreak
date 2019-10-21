@@ -1,0 +1,207 @@
+﻿@page "/lunches/addlunchbreak"
+@inject IHttpRequest HttpRequest
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@inject IAlertify Alertify
+
+<section>
+    <div class="container-fluid">
+        <div class="row mb-5">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <div class="row my-2 pt-md-5 mt-md-3">
+                            <div class="col">
+                                <h2>Add New Lunch Break</h2>
+                            </div>
+                        </div>
+                        <div class="row justify-content-center">
+                            <div class="col-10">
+                                <EditForm Model="@lunch" OnValidSubmit="@HandleValidSubmit">
+
+                                    <div class="form-group">
+                                        <label for="name">Name:</label>
+                                        <InputText type="text" class="form-control" id="name" @bind-Value="lunch.Name" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="team">Type of lunch:</label>
+                                        <InputSelect class="form-control" id="team" @bind-Value="lunch.IsPublic">
+                                            <option value="">Select value ...</option>
+                                            <option value="Public">Public</option>
+                                            <option value="Private">Private</option>
+                                        </InputSelect>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="validFrom">Valid From:</label>
+                                                <input class="form-control" type="date" @bind-value="lunch.ValidFrom" id="validFrom" />
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="validTo">Valid To:</label>
+                                                <input class="form-control" type="date" @bind-value="lunch.ValidTo" id="validTo" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if(restaurants != null)
+                                    {
+                                        <div class="form-group">
+                                            <label for="restaurant">Restaurant:</label>
+                                            <InputSelect class="form-control" id="restaurant" @bind-Value="lunch.RestaurantId">
+                                                <option value="">Select value ...</option>
+                                                @foreach (var restaurant in restaurants)
+                                                {
+                                                    <option value="@restaurant.Id">@restaurant.Name</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="form-group">
+                                            <label for="address">Restaurant:</label>
+                                            <InputText type="text" class="form-control" id="address" @bind-Value="lunch.Restaurant" />
+                                        </div>
+                                    }
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="classification">Type of delivery:</label>
+                                                <InputSelect class="form-control" id="classification" @bind-Value="lunch.FreeDelivery">
+                                                    <option value="">Select value ...</option>
+                                                    <option value="Free">Free</option>
+                                                    <option value="Paid">Paid</option>
+                                                </InputSelect>
+                                            </div>
+                                        </div>
+                                        @if (lunch.FreeDelivery.Equals("Paid"))
+                                        {
+                                            <div class="col-6">
+                                                <div class="form-group">
+                                                    <label for="delprice">Delivery Price:</label>
+                                                    <InputNumber type="number" class="form-control" id="delprice" @bind-Value="lunch.DeliveryPrice" />
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="description">Description:</label>
+                                        <textarea rows="4" class="form-control" id="description" @bind-value="lunch.Description" @bind-value:event="oninput"></textarea>
+                                    </div>
+                                    <hr />
+                                    <div class="form-group">
+                                        <label for="orderText">Order Item:</label>
+                                        <InputText type="text" class="form-control" id="orderText" @bind-Value="order.OrderText" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="orderComment">Order Comment:</label>
+                                        <textarea rows="4" class="form-control" id="orderComment" @bind-value="order.Comment" @bind-value:event="oninput"></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="form-group">
+                                            <div class="col-6">
+                                                <label for="orderPrice">Item Price:</label>
+                                            </div>
+                                            <div class="col-6">
+                                                <InputNumber type="number" class="form-control" id="orderPrice" @bind-Value="order.Price" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="text-danger text-center">
+                                        <DataAnnotationsValidator />
+                                        <ValidationSummary />
+                                        <label>@error</label>
+                                    </div>
+                                    <div class="font-weight-bold text-center">
+                                        <button type="submit" class="btn btn-primary mr-2">Add Lunch</button>
+                                        <button type="submit" class="btn btn-primary" @onclick="@OnCancel">Cancel</button>
+                                    </div>
+                                </EditForm>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@code {
+    private LunchDto lunch = new LunchDto() { FreeDelivery="", ValidFrom = DateTime.Now, ValidTo = DateTime.Now, Orders = new List<OrderDto>()};
+    private OrderDto order = new OrderDto() { Id = Guid.NewGuid().ToString() };
+    private List<RestaurantDto> restaurants;
+    private string error = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await HttpRequest.HttpGet<GetRestaurants>("api/restaurant/restaurants");
+
+        if (response == null)
+        {
+            await Alertify.Error("There was error");
+        }
+        else
+        {
+            if (response.Successful)
+            {
+                restaurants = response.Restaurants;
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+    }
+
+    private async void HandleValidSubmit()
+    {
+        if (!string.IsNullOrEmpty(order.OrderText))
+        {
+            order.UserId = await AuthService.GetUserId();
+            order.UserName = await AuthService.GetUser();
+            lunch.Orders.Add(order);
+            lunch.TotalPrice = order.Price;
+        }
+
+        var restaurant = restaurants.FirstOrDefault(r => r.Id == lunch.RestaurantId);
+
+        if(restaurant != null)
+        {
+            lunch.Restaurant = restaurant.Name;
+            lunch.LinkToMenu = restaurant.Website;
+        }
+
+        lunch.CreatedBy = await AuthService.GetUserId();
+
+        var response = await HttpRequest.HttpPost<OperationSuccessResponse>("api/lunchbreak", lunch);
+        Console.WriteLine(response);
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                await Alertify.Success("New lunch break added successfuly");
+                NavigationManager.NavigateTo("lunches");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was error");
+            OnCancel();
+        }
+    }
+
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo("lunches");
+    }
+}
