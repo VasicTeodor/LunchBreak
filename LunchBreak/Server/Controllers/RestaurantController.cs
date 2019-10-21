@@ -124,8 +124,11 @@ namespace LunchBreak.Server.Controllers
             {
                 foreach(var comment in restaurant.Comments)
                 {
-                    gradeSum += comment.Grade;
-                    counter++;
+                    if (comment.Approved)
+                    {
+                        gradeSum += comment.Grade;
+                        counter++;
+                    }
                 }
             }
 

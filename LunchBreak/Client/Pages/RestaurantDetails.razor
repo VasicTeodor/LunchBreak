@@ -19,7 +19,10 @@
                         {
                             <div class="row justify-content-center">
                                 <div class="font-weight-bold text-center">
-                                    <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Restaurant</button>
+                                    @if (isEditor)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Restaurant</button>
+                                    }
                                     <button class="btn btn-secondary" @onclick="@Cancel">Back</button>
                                 </div>
                             </div>
@@ -48,31 +51,37 @@
                                             <h5 class="text-center">Comments:</h5>
                                             @foreach (var comment in restaurant.Comments)
                                             {
-                                                <div class="card mb-1">
-                                                    <div class="card-body text-center">
-                                                        <div class="row">
-                                                            <div class="col-8 pl-3">
-                                                                <p class="mb-1"><strong>Comment Text:</strong></p>
-                                                                <p class="ml-2">@comment.Text</p>
+                                                @if (comment.Apporved)
+                                                {
+                                                    <div class="card mb-1">
+                                                        <div class="card-body text-center">
+                                                            <div class="row">
+                                                                <div class="col-8 pl-3">
+                                                                    <p class="mb-1"><strong>Comment Text:</strong></p>
+                                                                    <p class="ml-2">@comment.Text</p>
+                                                                </div>
+                                                                @if (isAdmin)
+                                                                {
+                                                                    <div class="col-4 text-right">
+                                                                        <div class="d-inline">
+                                                                            <i class="fas fa-check fa-2x text-success mr-1" style="cursor:pointer" @onclick="@(() => ApproveComment(comment.Id))"></i>
+                                                                            <i class="fas fa-times fa-2x text-danger" style="cursor:pointer" @onclick="@(() => RemoveComment(comment.Id))"></i>
+                                                                        </div>
+                                                                    </div>
+                                                                }
                                                             </div>
-                                                            <div class="col-4 text-right">
-                                                                <div class="d-inline">
-                                                                    <i class="fas fa-check fa-2x text-success mr-1" style="cursor:pointer" @onclick="@(() => ApproveComment(comment.Id))"></i>
-                                                                    <i class="fas fa-times fa-2x text-danger" style="cursor:pointer" @onclick="@(() => RemoveComment(comment.Id))"></i>
+                                                            <hr />
+                                                            <div class="row mb-2">
+                                                                <div class="col-5 text-left">
+                                                                    <p>Comment by: <strong>@comment.UserName</strong> <span class="text-muted font-italic">(@comment.Date.ToString("dddd, dd MMMM yyyy"))</span></p>
+                                                                </div>
+                                                                <div class="col-5 text-right">
+                                                                    <p>Grade: <strong>@comment.Grade / 10</strong></p>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <hr />
-                                                        <div class="row mb-2">
-                                                            <div class="col-5 text-left">
-                                                                <p>Comment by: <strong>@comment.UserName</strong> <span class="text-muted font-italic">(@comment.Date.ToString("dddd, dd MMMM yyyy"))</span></p>
-                                                            </div>
-                                                            <div class="col-5 text-right">
-                                                                <p>Grade: <strong>@comment.Grade / 10</strong></p>
-                                                            </div>
-                                                        </div>
                                                     </div>
-                                                </div>
+                                                }
                                             }
                                         </div>
                                     </div>
@@ -111,7 +120,14 @@
                         {
                             <div class="row justify-content-center">
                                 <div class="col-8">
-                                    <h4 class="text-center">Loading...</h4>
+                                    @if (string.IsNullOrEmpty(error))
+                                    {
+                                        <h4 class="text-center">Loading...</h4>
+                                    }
+                                    else
+                                    {
+                                        <h4 class="text-center text-danger">Error: @error</h4>
+                                    }
                                 </div>
                             </div>
                         }
@@ -138,13 +154,21 @@
 
         var response = await HttpRequest.HttpGet<GetRestaurant>($"api/restaurant/restaurant/{RestaurantId}");
 
-        if (response.Successful)
+        if (response != null)
         {
-            restaurant = response.Restaurant;
+            if (response.Successful)
+            {
+                restaurant = response.Restaurant;
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
         }
         else
         {
-            error = response.Errors.ToList().First();
+            await Alertify.Error("There was an error");
+            Cancel();
         }
     }
 
@@ -165,20 +189,27 @@
 
         var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/restaurant", restaurant);
 
-
-        if (response.Successful)
+        if (response != null)
         {
-            restaurant = null;
-            await OnInitializedAsync();
-            this.StateHasChanged();
-            NavigationManager.NavigateTo($"/restaurants/restaurant/{RestaurantId}");
+            if (response.Successful)
+            {
+                restaurant = null;
+                await Alertify.Success("Added comment");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+                NavigationManager.NavigateTo($"/restaurants/restaurant/{RestaurantId}");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
         }
         else
         {
-            if (!string.IsNullOrEmpty(response.Error))
-            {
-                error = response.Error;
-            }
+            await Alertify.Error("There was an error");
         }
     }
 
@@ -188,18 +219,26 @@
         var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/restaurant", restaurant);
 
 
-        if (response.Successful)
+        if (response != null)
         {
-            restaurant = null;
-            await OnInitializedAsync();
-            this.StateHasChanged();
+            if (response.Successful)
+            {
+                restaurant = null;
+                await Alertify.Success("Comment deletd");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
         }
         else
         {
-            if (!string.IsNullOrEmpty(response.Error))
-            {
-                error = response.Error;
-            }
+            await Alertify.Error("There was an error");
         }
     }
 
@@ -208,25 +247,33 @@
         var data = $"{restaurant.Id}+{commentId}";
         var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approvecomment/{data}","");
 
-
-        if (response.Successful)
+        if (response != null)
         {
-            restaurant = null;
-            await OnInitializedAsync();
-            this.StateHasChanged();
+            if (response.Successful)
+            {
+                restaurant = null;
+                await Alertify.Success("Successfuly approved comment");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
         }
         else
         {
-            if (!string.IsNullOrEmpty(response.Error))
-            {
-                error = response.Error;
-            }
+            await Alertify.Error("There was an error");
         }
     }
 
     private void Edit()
     {
-        NavigationManager.NavigateTo($"restaurants/editrestaurant/{RestaurantId}");
+        if(isEditor)
+            NavigationManager.NavigateTo($"restaurants/editrestaurant/{RestaurantId}");
     }
 
     private void Cancel()
