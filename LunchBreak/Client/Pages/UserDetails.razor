@@ -2,6 +2,7 @@
 @inject IHttpRequest HttpRequest
 @inject NavigationManager NavigationManager
 @inject IAuthService AuthService
+@inject IAlertify Alertify
 
 <section>
     <div class="container-fluid">
@@ -38,29 +39,32 @@
                                 </div>
                             </div>
 
-                            
+
+                            @if (isEditor)
+                            {
                             <hr />
-                            <div class="row justify-content-center">
-                                <div class="col-8">
-                                    <h5 class="text-center">Add User To Team:</h5>
-                                    <div class="card card-body text-center">
-                                        <EditForm Model="@user" OnSubmit="@HandleValidSubmit">
-                                            <div class="form-group">
-                                                <label for="teamid">User Team ID:</label>
-                                                <InputText type="text" class="form-control" id="teamid" @bind-Value="user.TeamId" />
-                                            </div>
-                                            <hr />
-                                            <div class="text-danger text-center">
-                                                <label>@error</label>
-                                            </div>
-                                            <div class="font-weight-bold text-center">
-                                                <button type="submit" class="btn btn-primary mr-2">Save Change</button>
-                                            </div>
-                                        </EditForm>
+                                <div class="row justify-content-center">
+                                    <div class="col-8">
+                                        <h5 class="text-center">Add User To Team:</h5>
+                                        <div class="card card-body text-center">
+                                            <EditForm Model="@user" OnSubmit="@HandleValidSubmit">
+                                                <div class="form-group">
+                                                    <label for="teamid">User Team ID:</label>
+                                                    <InputText type="text" class="form-control" id="teamid" @bind-Value="user.TeamId" />
+                                                </div>
+                                                <hr />
+                                                <div class="text-danger text-center">
+                                                    <label>@error</label>
+                                                </div>
+                                                <div class="font-weight-bold text-center">
+                                                    <button type="submit" class="btn btn-primary mr-2">Save Change</button>
+                                                </div>
+                                            </EditForm>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             <hr />
+                            }
                         }
                         else
                         {
@@ -82,21 +86,34 @@
     public string UserId { get; set; }
     private string CurrentUserId { get; set; }
     private string error = null;
+    private bool isEditor = false;
+    private bool isAdmin = false;
 
-     private UserRegisterDTO user;
+    private UserRegisterDTO user;
 
     protected override async Task OnInitializedAsync()
     {
         CurrentUserId = await AuthService.GetUserId();
+
+        isEditor = await AuthService.IsUserEditor();
+        isAdmin = await AuthService.IsUserEditor();
+
         var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{UserId}");
 
-        if (response.Successful)
+        if(response != null)
         {
-            user = response.User;
+            if (response.Successful)
+            {
+                user = response.User;
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            error = response.Error;
+            await Alertify.Error("There was an error");
         }
     }
 
@@ -104,14 +121,21 @@
     {
         Console.WriteLine("OnValidSubmit");
         var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/users/", user);
-        Console.WriteLine(response.Successful);
-        if (response.Successful)
+
+        if(response != null)
         {
-            Console.WriteLine("Hello");
+            if (response.Successful)
+            {
+                await Alertify.Success("Successfuly added user to team");
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            error = response.Error;
+            await Alertify.Error("There was an error");
         }
 
     }

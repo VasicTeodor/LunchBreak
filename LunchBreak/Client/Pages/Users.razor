@@ -1,6 +1,8 @@
 ﻿@page "/users"
 @inject IHttpRequest HttpRequest
 @inject NavigationManager NavigationManager
+@inject IAlertify Alertify
+@inject IAuthService AuthService
 
 <section>
     <div class="container-fluid">
@@ -39,9 +41,12 @@
                                                     <th>@user.Name</th>
                                                     <td>@user.Username</td>
                                                     <td>@user.Email</td>
-                                                    <td class="p-1">
-                                                        <i class="fas fa-times fa-2x text-danger" style="cursor: pointer" @onclick="@(async () => await RemoveUser(user.Id))"></i>
-                                                    </td>
+                                                    @if (isAdmin)
+                                                    {
+                                                        <td class="p-1">
+                                                            <i class="fas fa-times fa-2x text-danger" style="cursor: pointer" @onclick="@(async () => await RemoveUser(user.Id))"></i>
+                                                        </td>
+                                                    }
                                                     <td class="p-1">
                                                         <i class="fas fa-search-plus fa-2x text-primary" style="cursor: pointer" @onclick="@(() => UserDetails(user.Id))"></i>
                                                     </td>
@@ -78,18 +83,28 @@
 @code {
     private List<UserRegisterDTO> users;
     private string error = "";
+    private bool isAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
+        isAdmin = await AuthService.IsUserAdmin();
+
         var response = await HttpRequest.HttpGet<GetUsers>("api/users/allusers");
 
-        if (response.Successful)
+        if(response != null)
         {
-            users = response.Users;
+            if (response.Successful)
+            {
+                users = response.Users;
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            error = response.Error;
+            await Alertify.Error("There was an error");
         }
     }
 
@@ -97,15 +112,23 @@
     {
         var response = await HttpRequest.HttpDelete<OperationSuccessResponse>($"api/users/remove/{userId}", "");
 
-        if (response.Successful)
+        if(response != null)
         {
-            users = null;
-            await OnInitializedAsync();
-            this.StateHasChanged();
+            if (response.Successful)
+            {
+                users = null;
+                await Alertify.Success("Successfuly removed user");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            error = response.Error;
+            await Alertify.Error("There was an error while removing user");
         }
     }
 

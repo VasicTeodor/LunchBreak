@@ -2,6 +2,7 @@
 @inject IHttpRequest HttpRequest
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService localStorage
+@inject IAlertify Alertify
 
 <section>
     <div class="container-fluid">
@@ -46,6 +47,7 @@
                                         <div class="text-danger">
                                             <DataAnnotationsValidator />
                                             <ValidationSummary />
+                                            <label>@error</label>
                                         </div>
                                         <div class="text-center font-weight-bold ">
                                             <button type="button" class="btn btn-secondary">Cancel</button>
@@ -63,7 +65,7 @@
 </section>
 
 @code {
-    string registerError = "";
+    string error = "";
 
     private UserRegisterDTO user;
 
@@ -71,37 +73,53 @@
     {
 
         var userId = await localStorage.GetItemAsync<string>("lunchBreakId");
-        Console.WriteLine(userId);
+
         var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{userId}");
 
-        if (response.Successful)
+        if(response != null)
         {
-            user = response.User;
+            if (response.Successful)
+            {
+                user = response.User;
+                error = "";
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            registerError = response.Error;
+            await Alertify.Error("There was an error");
         }
     }
 
     private async void HandleValidSubmit()
     {
-        Console.WriteLine("OnValidSubmit");
         var response = await HttpRequest.HttpPut<OperationSuccessResponse>("api/users/", user);
-        Console.WriteLine(response.Successful);
-        if (response.Successful)
+
+        if(response != null)
         {
-            Console.WriteLine("Hello");
+            if (response.Successful)
+            {
+                error = "";
+                await Alertify.Success("Successfuly updated user data");
+                NavigationManager.NavigateTo($"users/user/{user.Id}");
+            }
+            else
+            {
+                error = response.Error;
+            }
         }
         else
         {
-            registerError = response.Error;
+            await Alertify.Error("Failed to update user data");
         }
 
     }
 
     private void GoToDashboard()
     {
-        NavigationManager.NavigateTo("/");
+        NavigationManager.NavigateTo("");
     }
 }
