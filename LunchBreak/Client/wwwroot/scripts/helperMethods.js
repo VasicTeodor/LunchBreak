@@ -7,29 +7,44 @@ window.CheckIsUserAdmin = () => {
 
     let token = localStorage.getItem("authToken");
     var decodedToken = jwt_decode(token);
-    console.log(jwt_decode(token));
-    console.log(decodedToken.rol_Admin);
-    return JSON.parse(decodedToken.rol_Admin);
+
+    if (decodedToken.rol_Admin !== undefined) {
+        return JSON.parse(decodedToken.rol_Admin) ? true : false;
+    } else {
+        return false;
+    }
 };
 
 window.CheckIsUser = () => {
 
     let token = localStorage.getItem("authToken");
     var decodedToken = jwt_decode(token);
-    console.log(jwt_decode(token));
-    console.log(decodedToken.rol_User);
-    return JSON.parse(decodedToken.rol_User);
+
+    if (decodedToken.rol_User !== undefined) {
+        return JSON.parse(decodedToken.rol_User) ? true : false;
+    } else {
+        return false;
+    }
 };
 
 window.CheckIsUserEditor = () => {
 
     let token = localStorage.getItem("authToken");
     var decodedToken = jwt_decode(token);
-    console.log(jwt_decode(token));
-    console.log(decodedToken.rol_Editor);
-    return JSON.parse(decodedToken.rol_Editor);
+
+    if (decodedToken.rol_Editor !== undefined) {
+        return JSON.parse(decodedToken.rol_Editor) ? true : false;
+    } else {
+        return false;
+    }
 };
 
 window.LogOut = () => {
     window.location.reload();
+};
+
+window.GoTo = (elementId) => {
+    document.querySelector('#'+elementId).scrollIntoView({
+        behavior: 'smooth'
+    });
 };

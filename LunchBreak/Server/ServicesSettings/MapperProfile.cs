@@ -66,6 +66,10 @@ namespace LunchBreak.Server.ServicesSettings
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.TeamId, opt => opt.MapFrom(src => src.TeamId))
+                .ForPath(dest => dest.ProfilePicture.Data, opt => opt.MapFrom(src => src.ProfilePicture.Data))
+                .ForPath(dest => dest.ProfilePicture.Type, opt => opt.MapFrom(src => src.ProfilePicture.Type))
+                .ForPath(dest => dest.DocumentPicture.Data, opt => opt.MapFrom(src => src.DocumentPicture.Data))
+                .ForPath(dest => dest.DocumentPicture.Type, opt => opt.MapFrom(src => src.DocumentPicture.Type))
                 .ForMember(dest => dest.Password, opt => opt.Ignore());
         }
     }

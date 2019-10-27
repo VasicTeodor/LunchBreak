@@ -38,6 +38,8 @@ namespace LunchBreak.Server.Controllers
         public async Task<IActionResult> Register(UserRegisterDTO user)
         {
             var newUser = _mapper.Map<User>(user);
+            newUser.ProfilePicture = new Image() { };
+            newUser.DocumentPicture = new Image() { };
             newUser.Role = HelperAuth.Constants.Policy.User;
 
             if (await _userRepository.CheckIfUserExists(user.Username))

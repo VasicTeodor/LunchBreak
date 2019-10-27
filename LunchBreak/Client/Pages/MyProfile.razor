@@ -23,37 +23,59 @@
                                 }
                                 else
                                 {
-                                    <EditForm Model="@user" OnValidSubmit="@HandleValidSubmit">
-                                        <div class="form-group">
-                                            <label for="name">Name:</label>
-                                            <InputText type="text" class="form-control" id="name" @bind-Value="user.Name" />
+                            <EditForm Model="@user" OnValidSubmit="@HandleValidSubmit">
+                                <div class="form-group">
+                                    <label for="name">Name:</label>
+                                    <InputText type="text" class="form-control" id="name" @bind-Value="user.Name" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email address:</label>
+                                    <InputText type="email" class="form-control" id="email" @bind-Value="user.Email" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="username">Username:</label>
+                                    <InputText type="text" class="form-control" id="username" @bind-Value="user.Username" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="pwd">Password:</label>
+                                    <InputText type="password" class="form-control" id="pwd" @bind-Value="user.Password" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="pwdRpt">Repeat Password:</label>
+                                    <InputText type="password" class="form-control" id="pwdRpt" @bind-Value="user.ConfirmPassword" />
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label>Upload profile image:</label>
+                                            <InputFile OnChange="HandleSelection" />
                                         </div>
-                                        <div class="form-group">
-                                            <label for="email">Email address:</label>
-                                            <InputText type="email" class="form-control" id="email" @bind-Value="user.Email" />
+                                        <div class="col-6">
+                                            <img class="border-dark" src="@profileImg" alt="profileImage" style="width: 200px; height: 200px" />
                                         </div>
-                                        <div class="form-group">
-                                            <label for="username">Username:</label>
-                                            <InputText type="text" class="form-control" id="username" @bind-Value="user.Username" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label>Upload document image:</label>
+                                            <InputFile OnChange="HandleDocumentSelection" />
                                         </div>
-                                        <div class="form-group">
-                                            <label for="pwd">Password:</label>
-                                            <InputText type="password" class="form-control" id="pwd" @bind-Value="user.Password" />
+                                        <div class="col-6">
+                                            <img class="border-dark" src="@documentImg" alt="documentImage" style="width: 330px; height: 200px" />
                                         </div>
-                                        <div class="form-group">
-                                            <label for="pwdRpt">Repeat Password:</label>
-                                            <InputText type="password" class="form-control" id="pwdRpt" @bind-Value="user.ConfirmPassword" />
-                                        </div>
-                                        <div class="text-danger">
-                                            <DataAnnotationsValidator />
-                                            <ValidationSummary />
-                                            <label>@error</label>
-                                        </div>
-                                        <div class="text-center font-weight-bold ">
-                                            <button type="button" class="btn btn-secondary">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Update Profile</button>
-                                        </div>
-                                    </EditForm>
+                                    </div>
+                                </div>
+                                <div class="text-danger">
+                                    <DataAnnotationsValidator />
+                                    <ValidationSummary />
+                                    <label>@error</label>
+                                </div>
+                                <div class="text-center font-weight-bold ">
+                                    <button type="button" class="btn btn-secondary">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                                </div>
+                            </EditForm>
                                 }
                             </div>
                         </div>
@@ -66,6 +88,8 @@
 
 @code {
     string error = "";
+    private string profileImg = "images/avatar.png";
+    private string documentImg = "images/document.png";
 
     private UserRegisterDTO user;
 
@@ -81,6 +105,14 @@
             if (response.Successful)
             {
                 user = response.User;
+                if (!string.IsNullOrEmpty(user.ProfilePicture.Data))
+                {
+                    profileImg = $"data:image/{user.ProfilePicture.Type};base64,{user.ProfilePicture.Data}";
+                }
+                if (!string.IsNullOrEmpty(user.DocumentPicture.Data))
+                {
+                    documentImg = $"data:image/{user.DocumentPicture.Type};base64,{user.DocumentPicture.Data}";
+                }
                 error = "";
             }
             else
@@ -116,6 +148,72 @@
             await Alertify.Error("Failed to update user data");
         }
 
+    }
+
+    async Task HandleSelection(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+            string data = Convert.ToBase64String(ms.ToArray());
+
+            var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/users/uploadprofileimage?userId={user.Id}", new PictureData() { Data = ms.ToArray(), Type = file.Type});
+
+            if(response != null)
+            {
+                if (response.Successful)
+                {
+                    error = "";
+                    profileImg = $"data:image/{file.Type};base64,{data}";
+                    await Alertify.Success("Successfuly uploaded profile picture");
+                }
+                else
+                {
+                    error = response.Error;
+                }
+            }
+            else
+            {
+                await Alertify.Error("Failed to update user data");
+            }
+        }
+    }
+
+    async Task HandleDocumentSelection(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+            string data = Convert.ToBase64String(ms.ToArray());
+
+            var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/users/uploaddocumentimage?userId={user.Id}", new PictureData() { Data = ms.ToArray(), Type = file.Type});
+
+            if(response != null)
+            {
+                if (response.Successful)
+                {
+                    error = "";
+                    documentImg = $"data:image/{file.Type};base64,{data}";
+                    await Alertify.Success("Successfuly uploaded document picture");
+                }
+                else
+                {
+                    error = response.Error;
+                }
+            }
+            else
+            {
+                await Alertify.Error("Failed to update user data");
+            }
+        }
     }
 
     private void GoToDashboard()

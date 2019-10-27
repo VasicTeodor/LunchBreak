@@ -34,6 +34,10 @@
                                         <p class="mb-0">Email: <strong>@user.Email</strong></p>
                                         <p class="mb-0">User ID: <strong>@user.Id</strong></p>
                                         <p class="mb-0">User Team ID: <strong>@user.TeamId</strong></p>
+                                        <p class="mb-0">Profile Picture:</p>
+                                        <img class="border-dark" src="@profileImg" alt="profileImage" style="width: 200px; height: 200px" />
+                                        <p class="mb-0">Document Identification:</p>
+                                        <img class="border-dark" src="@documentImg" alt="documentImage" style="width: 330px; height: 200px" />
                                     </div>
 
                                 </div>
@@ -88,6 +92,8 @@
     private string error = null;
     private bool isEditor = false;
     private bool isAdmin = false;
+    private string profileImg = "images/avatar.png";
+    private string documentImg = "images/document.png";
 
     private UserRegisterDTO user;
 
@@ -105,6 +111,14 @@
             if (response.Successful)
             {
                 user = response.User;
+                if (!string.IsNullOrEmpty(user.ProfilePicture.Data))
+                {
+                    profileImg = $"data:image/{user.ProfilePicture.Type};base64,{user.ProfilePicture.Data}";
+                }
+                if (!string.IsNullOrEmpty(user.DocumentPicture.Data))
+                {
+                    documentImg = $"data:image/{user.DocumentPicture.Type};base64,{user.DocumentPicture.Data}";
+                }
             }
             else
             {

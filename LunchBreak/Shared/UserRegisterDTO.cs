@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LunchBreak.Shared.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -25,5 +26,7 @@ namespace LunchBreak.Shared
         public string ConfirmPassword { get; set; }
         public string Id { get; set; }
         public string TeamId { get; set; }
+        public Image ProfilePicture { get; set; }
+        public Image DocumentPicture { get; set; }
     }
 }

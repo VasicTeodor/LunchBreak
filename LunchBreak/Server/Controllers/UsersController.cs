@@ -75,6 +75,54 @@ namespace LunchBreak.Server.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("uploadprofileimage")]
+        public async Task<IActionResult> UploadProfileImage([FromQuery]string userId, PictureData picture)
+        {
+            var user = await _userRepository.GetUser(userId);
+
+            if(user == null)
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Failed to upload user profile picture" });
+
+            user.ProfilePicture.Data = Convert.ToBase64String(picture.Data);
+            user.ProfilePicture.Type = picture.Type;
+
+            var result = await _userRepository.UpdateUser(userId, user);
+
+            if (result)
+            {
+                return Ok(new OperationSuccessResponse() { Successful = true });
+            }
+            else
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Failed to update user profile" });
+            }
+        }
+
+        [HttpPut]
+        [Route("uploaddocumentimage")]
+        public async Task<IActionResult> UploadDocumentImage([FromQuery]string userId, PictureData picture)
+        {
+            var user = await _userRepository.GetUser(userId);
+
+            if (user == null)
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Failed to upload users document picture" });
+
+            user.DocumentPicture.Data = Convert.ToBase64String(picture.Data);
+            user.DocumentPicture.Type = picture.Type;
+
+            var result = await _userRepository.UpdateUser(userId, user);
+
+            if (result)
+            {
+                return Ok(new OperationSuccessResponse() { Successful = true });
+            }
+            else
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Failed to update user profile" });
+            }
+        }
+
         [HttpDelete]
         [Route("remove/{userId}")]
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]

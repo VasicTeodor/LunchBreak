@@ -15,8 +15,8 @@
 else
 {
     <nav class="navbar navbar-expand-md navbar-light bg-dark fixed-top">
-        <a href="#" class="navbar-brand">
-            <i class="fas fa-child text-warning fa-2x"></i>
+        <a @onclick="(() => GoTo(4))" class="navbar-brand" style="cursor: pointer">
+            <i @onclick="(() => GoTo(4))" class="fas fa-utensils text-warning fa-2x"></i>
         </a>
         <button type="button"
                 class="navbar-toggler bg-light"
@@ -27,20 +27,20 @@ else
         <div id="nav" class="collapse navbar-collapse justify-content-between">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <NavLink class="nav-link text-light text-uppercase text-bold px-3"
-                       href="#about">About us</NavLink>
+                    <a class="nav-link text-light text-uppercase text-bold px-3" style="cursor:pointer"
+                       @onclick="(() => GoTo(1))">About us</a>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link text-light text-uppercase text-bold px-3"
-                       href="#lunch">Lunch break</NavLink>
+                    <a class="nav-link text-light text-uppercase text-bold px-3" style="cursor:pointer"
+                       @onclick="(() => GoTo(2))">Lunch break</a>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link text-light text-uppercase text-bold px-3"
-                       href="#grades">Our users</NavLink>
+                    <a class="nav-link text-light text-uppercase text-bold px-3" style="cursor:pointer"
+                       @onclick="(() => GoTo(3))">Our users</a>
                 </li>
             </ul>
 
-            <form class="form-inline ml-3">
+            @*<form class="form-inline ml-3">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search" />
                     <div class="input-group-append">
@@ -49,23 +49,23 @@ else
                         </button>
                     </div>
                 </div>
-            </form>
+            </form>*@
         </div>
     </nav>
     <!-- end of navbar -->
     <!-- ==================================================================================== -->
     <!-- banner -->
-    <section>
+    <section id="top">
         <div class="container-fluid">
             <div class="row bg-info justify-content-center align-items-center"
-                 style="height: 100vh">
+                 style="height: 100vh; background-image: url('images/table.jpg')">
                 <div class="col-sm-10 text-center">
                     <h1 class="display-2 text-capitalize">
-                        <span class="text-warning">Pure Bootstrap</span>
-                        <span class="text-white font-weight-bold">website</span>
+                        <span class="text-warning">Lunch Break</span>
+                        <span class="text-white font-weight-bold">application</span>
                     </h1>
                     <h2 class="font-weight-light font-italic text-light">
-                        Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                        We will make team lunch organisation four you easy as breeze.
                     </h2>
                     <button type="button" class="btn btn-warning btn-lg px-4 m-3" data-toggle="modal" data-target="#modalRegister">Register</button>
                     <button type="button" class="btn btn-danger btn-lg px-4 m-3" data-toggle="modal" data-target="#modalLogin">Login</button>
@@ -80,7 +80,7 @@ else
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalCenterTitle">Modal title</h5>
+                    <h5 class="modal-title" id="exampleModalCenterTitle">Log In</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -114,7 +114,7 @@ else
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalCenterTitle">Modal title</h5>
+                    <h5 class="modal-title" id="exampleModalCenterTitle">Register New User</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -175,10 +175,8 @@ else
 
     private async void HandleValidSubmit()
     {
-        Console.WriteLine("OnValidSubmit");
         var response = await AuthService.Register(newUser);
-        //var response = await HttpRequest.HttpPost<RegisterResult>("api/authorization/register", newUser);
-        Console.WriteLine(response.Successful);
+
         if (response.Successful)
         {
             var loginResult = await AuthService.Login(new LoginData() { Username = newUser.Username, Password = newUser.Password });
@@ -199,7 +197,6 @@ else
 
     private async void HandleLoginSubmit()
     {
-        Console.WriteLine("onLoginData");
         var result = await AuthService.Login(loginData);
         if (result.Successful)
         {
@@ -216,8 +213,30 @@ else
     protected override async Task OnInitializedAsync()
     {
         jwt = await localStorage.GetItemAsync<string>("authToken");
-        //await localStorage.SetItemAsync("name", "John Smith");
-        //var name = await localStorage.GetItemAsync<string>("name");
     }
 
+    private async Task GoTo(int elementId)
+    {
+        string element = "top";
+
+        switch (elementId)
+        {
+            case 1:
+                element = "about";
+                break;
+            case 2:
+                element = "lunch";
+                break;
+            case 3:
+                element = "grades";
+                break;
+            case 4:
+                element = "top";
+                break;
+            default:
+                element = "top";
+                break;
+        }
+        await JsRuntime.InvokeVoidAsync("GoTo", element);
+    }
 }
