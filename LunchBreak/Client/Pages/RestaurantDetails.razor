@@ -19,6 +19,10 @@
                         {
                             <div class="row justify-content-center">
                                 <div class="font-weight-bold text-center">
+                                    @if (isAdmin && !restaurant.Approved)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(async () => await ApproveRestaurant(restaurant.Id))">Approve</button>
+                                    }
                                     @if (isEditor)
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Restaurant</button>
@@ -51,7 +55,7 @@
                                             <h5 class="text-center">Comments:</h5>
                                             @foreach (var comment in restaurant.Comments)
                                             {
-                                                @if (comment.Apporved)
+                                                @if (comment.Apporved || isAdmin)
                                                 {
                                                     <div class="card mb-1">
                                                         <div class="card-body text-center">
@@ -152,7 +156,7 @@
         isAdmin = await AuthService.IsUserAdmin();
         isEditor = await AuthService.IsUserEditor();
 
-        var response = await HttpRequest.HttpGet<GetRestaurant>($"api/restaurant/restaurant/{RestaurantId}");
+        var response = await HttpRequest.HttpGet<GetRestaurant>($"api/restaurant/restaurant/{RestaurantId}","");
 
         if (response != null)
         {
@@ -169,6 +173,25 @@
         {
             await Alertify.Error("There was an error");
             Cancel();
+        }
+    }
+
+    private async Task ApproveRestaurant(string restaurantId)
+    {
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approverestaurant/{restaurantId}","");
+        Console.WriteLine(response);
+        if (response.Successful)
+        {
+            restaurant = null;
+            await OnInitializedAsync();
+            this.StateHasChanged();
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(response.Error))
+            {
+                error = response.Error;
+            }
         }
     }
 

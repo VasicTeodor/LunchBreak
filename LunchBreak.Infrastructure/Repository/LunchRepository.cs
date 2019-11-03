@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
+using LunchBreak.Helpers;
 using LunchBreak.Infrastructure.DatabaseSettings;
 using LunchBreak.Infrastructure.Entities;
 using LunchBreak.Infrastructure.Interfaces;
@@ -22,15 +22,34 @@ namespace LunchBreak.Infrastructure.Repository
 
             _lunches = database.GetCollection<Lunch>(_collectionName);
         }
-        public async Task<List<Lunch>> GetLunches(bool isAdmin = false)
+        public async Task<PaginationData<Lunch>> GetLunches(string search, bool isAdmin = false, PaginationData<Lunch> paginationData = null)
         {
+            var pagination = paginationData ?? new PaginationData<Lunch>() { PageSize = 5, PageNumber = 1 };
+
+            var searchString = search ?? "";
             if (isAdmin)
             {
-                return await _lunches.Find(lunch => true).ToListAsync();
+                return new PaginationData<Lunch>
+                {
+                    Items = await _lunches.Find(lunch => lunch.Name.ToLower().Contains(searchString.ToLower()))
+                                .Skip((pagination.PageNumber - 1) * pagination.PageSize).Limit(pagination.PageSize).ToListAsync(),
+                    NumberOfItems = Convert.ToInt32(await _lunches.CountDocumentsAsync(doc => true)),
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+                //return await _lunches.Find(lunch => lunch.Name.ToLower().Contains(searchString.ToLower())).ToListAsync();
             }
             else
             {
-                return await _lunches.Find(lunch => lunch.Approved == true).ToListAsync();
+                return new PaginationData<Lunch>
+                {
+                    Items = await _lunches.Find(lunch => lunch.Approved == true && lunch.Name.ToLower().Contains(searchString.ToLower()))
+                                        .Skip((pagination.PageNumber - 1) * pagination.PageSize).Limit(pagination.PageSize).ToListAsync(),
+                    PageSize = pagination.PageSize,
+                    PageNumber = pagination.PageNumber,
+                    NumberOfItems = Convert.ToInt32(await _lunches.CountDocumentsAsync(doc => doc.Approved == true))
+                };
+                //return await _lunches.Find(lunch => lunch.Approved == true && lunch.Name.ToLower().Contains(searchString.ToLower())).ToListAsync();
             }
         }
         public async Task<Lunch> GetLunch(string lunchId) => await _lunches.Find(lunch => lunch.Id.Equals(lunchId)).FirstOrDefaultAsync();
@@ -66,6 +85,11 @@ namespace LunchBreak.Infrastructure.Repository
                 Trace.WriteLine($"Error while saving changes: {e.Message}", "ERROR");
                 return false;
             }
+        }
+
+        public async Task<List<Lunch>> GetLunchesAdmin()
+        {
+            return await _lunches.Find(lunch => true).ToListAsync();
         }
     }
 }

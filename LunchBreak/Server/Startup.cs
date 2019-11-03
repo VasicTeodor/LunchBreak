@@ -132,8 +132,8 @@ namespace LunchBreak.Server
 
             //app.ConfigureCustomExceptionMiddleware();
 
-            app.UseAuthorization();
             app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseStaticFiles();
             app.UseClientSideBlazorFiles<Client.Startup>();

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using LunchBreak.Helpers;
 using LunchBreak.Infrastructure.Entities;
 using LunchBreak.Shared;
 using LunchBreak.Shared.Models;
@@ -62,6 +63,7 @@ namespace LunchBreak.Server.ServicesSettings
                 .ForMember(dest => dest.Website, opt => opt.MapFrom(src => src.Website));
             CreateMap<User, UserRegisterDTO>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Approved, opt => opt.MapFrom(src => src.Approved))
                 .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
@@ -71,6 +73,33 @@ namespace LunchBreak.Server.ServicesSettings
                 .ForPath(dest => dest.DocumentPicture.Data, opt => opt.MapFrom(src => src.DocumentPicture.Data))
                 .ForPath(dest => dest.DocumentPicture.Type, opt => opt.MapFrom(src => src.DocumentPicture.Type))
                 .ForMember(dest => dest.Password, opt => opt.Ignore());
+            CreateMap<PaginationDataInfo, PaginationData<Restaurant>>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems))
+                .ForMember(dest => dest.Items, opt => opt.Ignore());
+            CreateMap<PaginationDataInfo, PaginationData<Lunch>>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems))
+                .ForMember(dest => dest.Items, opt => opt.Ignore());
+            CreateMap<PaginationDataInfo, PaginationData<User>>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems))
+                .ForMember(dest => dest.Items, opt => opt.Ignore());
+            CreateMap<PaginationData<Restaurant>, PaginationDataInfo>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems));
+            CreateMap<PaginationData<Lunch>, PaginationDataInfo>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems));
+            CreateMap<PaginationData<User>, PaginationDataInfo>()
+                .ForMember(dest => dest.PageNumber, opt => opt.MapFrom(src => src.PageNumber))
+                .ForMember(dest => dest.PageSize, opt => opt.MapFrom(src => src.PageSize))
+                .ForMember(dest => dest.NumberOfItems, opt => opt.MapFrom(src => src.NumberOfItems));
         }
     }
 }

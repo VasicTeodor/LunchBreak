@@ -8,6 +8,7 @@ namespace LunchBreak.Shared
         public bool Successful { get; set; }
         public string Error { get; set; }
         public string Token { get; set; }
+        public bool ApprovedAccount { get; set; }
         public string Id { get; set; }
         public int ExpiresIn { get; set; }
         public string Username { get; set; }
@@ -35,6 +36,7 @@ namespace LunchBreak.Shared
     public class GetLunches
     {
         public bool Successful { get; set; }
+        public PaginationDataInfo PaginationInfo { get; set; }
         public List<LunchDto> Lunches { get; set; }
         public IEnumerable<string> Errors { get; set; }
     }
@@ -49,6 +51,7 @@ namespace LunchBreak.Shared
     public class GetRestaurants
     {
         public bool Successful { get; set; }
+        public PaginationDataInfo PaginationInfo { get; set; }
         public List<RestaurantDto> Restaurants { get; set; }
         public IEnumerable<string> Errors { get; set; }
     }
@@ -62,7 +65,17 @@ namespace LunchBreak.Shared
     public class GetUsers
     {
         public bool Successful { get; set; }
+        public PaginationDataInfo PaginationInfo { get; set; }
         public List<UserRegisterDTO> Users { get; set; }
+        public string Error { get; set; }
+    }
+
+    public class GetStats
+    {
+        public bool Successful { get; set; }
+        public int LunchesNum { get; set; }
+        public int RestaurantsNum { get; set; }
+        public int UsersNum { get; set; }
         public string Error { get; set; }
     }
 }

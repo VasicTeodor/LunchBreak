@@ -106,7 +106,7 @@ namespace LunchBreak.Server.Controllers
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secret)), SecurityAlgorithms.HmacSha256)
             };
 
-            var retJwt = HelperAuth.GenerateJwt(userIdentity, jwtOptions);
+            var retJwt = HelperAuth.GenerateJwt(userIdentity, jwtOptions, user.Approved);
             return Ok(retJwt);
         }
     }

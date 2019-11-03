@@ -80,10 +80,12 @@
     private LunchDto lunch;
     private OrderDto order = new OrderDto() { Id = Guid.NewGuid().ToString() };
     private string error = null;
+    private bool userApproved = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+        userApproved = await AuthService.IsUserApporved();
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}","");
 
         if (response != null)
         {
@@ -105,6 +107,12 @@
 
     private async void HandleValidSubmit()
     {
+        if (!userApproved)
+        {
+            await Alertify.Error("Your account is not approved. Please log out, and try again later.");
+            return;
+        }
+
         order.UserId = await AuthService.GetUserId();
         order.UserName = await AuthService.GetUser();
 

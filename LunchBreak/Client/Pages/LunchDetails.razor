@@ -19,11 +19,15 @@
                         {
                             <div class="row justify-content-center mb-1">
                                 <div class="font-weight-bold text-center">
-                                    @if(lunch.CreatedBy == userId || isEditor)
+                                    @if (isAdmin && !lunch.Approved)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(async () => await ApproveLunch(lunch.Id))">Approve Lunch</button>
+                                    }
+                                    @if (lunch.CreatedBy == userId || isEditor)
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Lunch</button>
                                     }
-                                    @if (!onLunch)
+                                    @if ((!onLunch && lunch.IsPublic == "Public" ) || (!onLunch && lunch.IsPublic == "Private" && user.TeamId == lunch.TeamId))
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => JoinLunch())">Join Lunch</button>
                                     }
@@ -122,12 +126,14 @@
     private bool isAdmin = false;
     private string userId = "";
 
+    private UserRegisterDTO user;
+
     protected override async Task OnInitializedAsync()
     {
         userId = await AuthService.GetUserId();
         isEditor = await AuthService.IsUserEditor();
         isAdmin = await AuthService.IsUserAdmin();
-        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}","");
 
         if (response != null)
         {
@@ -139,6 +145,25 @@
             else
             {
                 error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+            Cancel();
+        }
+
+        var userResponse = await HttpRequest.HttpGet<GetUser>($"api/users/user/{userId}","");
+
+        if(response != null)
+        {
+            if (response.Successful)
+            {
+                user = userResponse.User;
+            }
+            else
+            {
+                error = userResponse.Error;
             }
         }
         else
@@ -164,6 +189,33 @@
             {
                 lunch = null;
                 await Alertify.Success("Successfuly deleted order");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private async Task ApproveLunch(string lunchId)
+    {
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approvelunch/{lunchId}","");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                lunch = null;
+                await Alertify.Success("Lunch break approved");
                 await OnInitializedAsync();
                 this.StateHasChanged();
             }

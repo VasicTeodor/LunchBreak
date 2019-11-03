@@ -6,6 +6,7 @@ using AutoMapper;
 using LunchBreak.Helpers;
 using LunchBreak.Infrastructure.Entities;
 using LunchBreak.Infrastructure.Interfaces;
+using LunchBreak.Server.Services;
 using LunchBreak.Shared;
 using LunchBreak.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -31,25 +32,49 @@ namespace LunchBreak.Server.Controllers
             _userRepository = userRepository;
         }
 
-        //[HttpGet]
-        //[Route("restaurants")]
-        //[Authorize(Policy = HelperAuth.Constants.Policy.User)]
-        //public async Task<IActionResult> Get()
-        //{
-        //    throw new NotImplementedException();
-        //}
+        [HttpGet]
+        [Route("getstatsupdate")]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
+        public async Task<IActionResult> Get()
+        {
+            var lunches = await _lunchRepository.GetLunchesAdmin();
+            var restaurants = await _restaurantRepository.GetRestaurantsAdmin();
+            var users = await _userRepository.GetUsersAdmin();
+            var response = new GetStats() { Successful = true };
 
-        //[HttpPost]
-        //[Authorize(Policy = HelperAuth.Constants.Policy.User)]
-        //public async Task<IActionResult> Post(Restaurant restaurant)
-        //{
+            if(lunches != null)
+            {
+                response.LunchesNum = lunches.Count;
+            }
+            else
+            {
+                response.LunchesNum = 0;
+            }
 
-        //    throw new NotImplementedException();
-        //}
+            if (restaurants != null)
+            {
+                response.RestaurantsNum = restaurants.Count;
+            }
+            else
+            {
+                response.RestaurantsNum = 0;
+            }
+
+            if (users != null)
+            {
+                response.UsersNum = users.Count;
+            }
+            else
+            {
+                response.UsersNum = 0;
+            }
+
+            return Ok(response);
+        }
 
         [HttpPut]
         [Route("approverestaurant/{restaurantId}")]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
         public async Task<IActionResult> ApproveRestaurant(string restaurantId)
         {
             var restaurant = await _restaurantRepository.GetRestaurant(restaurantId);
@@ -60,6 +85,7 @@ namespace LunchBreak.Server.Controllers
 
                 if (result)
                 {
+                    //EmailService.SendEmail("LunchBreak: Restaurant Approved", $"Restaurant that you added with name: {restaurant.Name} is approved by admin and now all users can see it.", "usermail");
                     return Ok(new OperationSuccessResponse() { Successful = true });
                 }
                 else
@@ -75,7 +101,7 @@ namespace LunchBreak.Server.Controllers
 
         [HttpPut]
         [Route("approvelunch/{lunchId}")]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
         public async Task<IActionResult> ApproveLunch(string lunchId)
         {
             var lunch = await _lunchRepository.GetLunch(lunchId);
@@ -86,6 +112,7 @@ namespace LunchBreak.Server.Controllers
 
                 if (result)
                 {
+                    //EmailService.SendEmail("LunchBreak: Lunch Approved", $"Lunch that you added with name: {lunch.Name} is approved by admin and now all users can see it.", "usermail");
                     return Ok(new OperationSuccessResponse() { Successful = true });
                 }
                 else
@@ -100,8 +127,40 @@ namespace LunchBreak.Server.Controllers
         }
 
         [HttpPut]
+        [Route("approveuser")]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
+        public async Task<IActionResult> ApproveUser([FromQuery]string userId, [FromQuery]bool approve)
+        {
+            var user = await _userRepository.GetUser(userId);
+            if (user != null)
+            {
+                user.Approved = approve;
+                var result = await _userRepository.UpdateUser(userId, user);
+
+                if (result && approve)
+                {
+                    //EmailService.SendEmail("LunchBreak: Account Approved", $"Congrats, your account is approved by our admin team, you can start using it.", "usermail");
+                    return Ok(new OperationSuccessResponse() { Successful = true });
+                }
+                else if(result && !approve)
+                {
+                    //EmailService.SendEmail("LunchBreak: Account Not Approved", $"Sorry, your account is not approved by our admin team, check your data again.", "usermail");
+                    return Ok(new OperationSuccessResponse() { Successful = false });
+                }
+                else
+                {
+                    return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Error while updating lunch status" });
+                }
+            }
+            else
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "Error while approving lunch" });
+            }
+        }
+
+        [HttpPut]
         [Route("approvecomment/{data}")]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
         public async Task<IActionResult> ApproveComment(string data)
         {
             var restaurantId = data.Split('+')[0];
@@ -111,15 +170,19 @@ namespace LunchBreak.Server.Controllers
             if (restaurant != null)
             {
                 var comment = restaurant.Comments.FirstOrDefault(c => c.Id == commentId);
+                var index = restaurant.Comments.IndexOf(comment);
                 comment.Approved = true;
 
                 restaurant.Comments.Remove(restaurant.Comments.FirstOrDefault(c => c.Id == commentId));
-                restaurant.Comments.Add(comment);
+                restaurant.Comments.Insert(index, comment);
+
+                restaurant.Grade = CalculateRestaurantGrade(restaurant);
 
                 var result = await _restaurantRepository.UpdateRestaurant(restaurantId, restaurant);
 
                 if (result)
                 {
+                    //EmailService.SendEmail("LunchBreak: Comment Approved", $"Your comment for restaurant: {restaurant.Name} is approved by our admin team, everyone can now see it.", "usermail");
                     return Ok(new OperationSuccessResponse() { Successful = true });
                 }
                 else
@@ -133,12 +196,31 @@ namespace LunchBreak.Server.Controllers
             }
         }
 
-        //[HttpDelete]
-        //[Route("remove/{restaurantId}")]
-        //[Authorize(Policy = HelperAuth.Constants.Policy.User)]
-        //public async Task<IActionResult> Delete(string restaurantId)
-        //{
-        //    throw new NotImplementedException();
-        //}
+        private int CalculateRestaurantGrade(Restaurant restaurant)
+        {
+            int counter = 0;
+            int gradeSum = 0;
+
+            if (restaurant.Comments != null)
+            {
+                foreach (var comment in restaurant.Comments)
+                {
+                    if (comment.Approved)
+                    {
+                        gradeSum += comment.Grade;
+                        counter++;
+                    }
+                }
+            }
+
+            if (counter != 0)
+            {
+                return gradeSum / counter;
+            }
+            else
+            {
+                return 0;
+            }
+        }
     }
 }

@@ -81,7 +81,7 @@
     {
         LunchId = Data.Split('+')[0];
         OrderId = Data.Split('+')[1];
-        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}","");
 
         if (response != null)
         {

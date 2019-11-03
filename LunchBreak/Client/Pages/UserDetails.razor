@@ -19,9 +19,17 @@
                         {
                             <div class="row justify-content-center">
                                 <div class="font-weight-bold text-center">
-                                    @if(UserId == CurrentUserId)
+                                    @if (UserId == CurrentUserId)
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Data</button>
+                                    }
+                                    @if (isAdmin && user.Approved)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(() => ApproveUser(UserId, true))">Approve User</button>
+                                    }
+                                    @if (isAdmin && !user.Approved)
+                                    {
+                                        <button class="btn btn-secondary mr-2" @onclick="@(() => ApproveUser(UserId, false))">Disapprove User</button>
                                     }
                                     <button class="btn btn-secondary" @onclick="@Cancel">Back</button>
                                 </div>
@@ -29,6 +37,14 @@
                             <div class="row justify-content-center">
                                 <div class="col-8">
                                     <div class="text-left">
+                                        @if (user.Approved)
+                                        {
+                                            <p class="mb-0">User Account is: <strong class="text-success">Approved</strong></p>
+                                        }
+                                        else
+                                        {
+                                            <p class="mb-0">User Account is: <strong class="text-danger">Not Approved</strong></p>
+                                        }
                                         <p class="mb-0">User Real Name: <strong>@user.Name</strong></p>
                                         <p class="mb-0">Username: <strong>@user.Username</strong></p>
                                         <p class="mb-0">Email: <strong>@user.Email</strong></p>
@@ -104,7 +120,7 @@
         isEditor = await AuthService.IsUserEditor();
         isAdmin = await AuthService.IsUserEditor();
 
-        var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{UserId}");
+        var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{UserId}","");
 
         if(response != null)
         {
@@ -152,6 +168,40 @@
             await Alertify.Error("There was an error");
         }
 
+    }
+
+    private async Task ApproveUser(string userId, bool approve)
+    {
+        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approveuser?userId={userId}&approve={approve}","");
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                user = null;
+                await Alertify.Success("User account approved");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else if(!response.Successful)
+            {
+                user = null;
+                await Alertify.Success("User account rejected");
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    error = response.Error;
+                }
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
     }
 
     private void Edit()

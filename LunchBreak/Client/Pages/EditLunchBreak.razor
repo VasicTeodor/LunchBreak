@@ -120,7 +120,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}");
+        var response = await HttpRequest.HttpGet<GetLunch>($"api/lunchbreak/lunch/{LunchId}","");
 
         if (response != null)
         {

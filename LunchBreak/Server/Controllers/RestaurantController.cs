@@ -11,6 +11,7 @@ using LunchBreak.Shared.Models;
 using AutoMapper;
 using LunchBreak.Helpers;
 using Microsoft.AspNetCore.Authorization;
+using LunchBreak.Server.Extensions;
 
 namespace LunchBreak.Server.Controllers
 {
@@ -20,11 +21,13 @@ namespace LunchBreak.Server.Controllers
     {
         private readonly IMapper _mapper;
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IUserRepository _userRepository;
 
-        public RestaurantController(IMapper mapper, IRestaurantRepository restaurantRepository)
+        public RestaurantController(IMapper mapper, IRestaurantRepository restaurantRepository, IUserRepository userRepository)
         {
             _mapper = mapper;
             _restaurantRepository = restaurantRepository;
+            _userRepository = userRepository;
         }
 
         [HttpGet]
@@ -48,14 +51,17 @@ namespace LunchBreak.Server.Controllers
         [HttpGet]
         [Route("restaurants")]
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]
-        public async Task<IActionResult> Get([FromQuery]bool isAdmin = false)
+        public async Task<IActionResult> Get([FromQuery]PaginationDataInfo paginationDataInfo, [FromQuery]string search = "", [FromQuery]bool isAdmin = false)
         {
-            var restaurants = await _restaurantRepository.GetRestaurants(isAdmin);
+            var pagination = _mapper.Map<PaginationData<Restaurant>>(paginationDataInfo);
 
-            if (restaurants != null)
+            var restaurants = await _restaurantRepository.GetRestaurants(search, isAdmin, pagination);
+
+            if (restaurants.Items != null)
             {
-                var resultToReturn = _mapper.Map<List<RestaurantDto>>(restaurants);
-                return Ok(new GetRestaurants() { Successful = true, Restaurants = resultToReturn });
+                var resultToReturn = _mapper.Map<List<RestaurantDto>>(restaurants.Items);
+
+                return Ok(new GetRestaurants() { Successful = true, Restaurants = resultToReturn, PaginationInfo = _mapper.Map<PaginationDataInfo>(restaurants) });
             }
             else
             {
@@ -64,9 +70,13 @@ namespace LunchBreak.Server.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Editor)]
         public async Task<IActionResult> Post(Restaurant restaurant)
         {
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved" });
+            }
 
             restaurant.Approved = false;
             var result = await _restaurantRepository.AddRestaurant(restaurant);
@@ -82,9 +92,14 @@ namespace LunchBreak.Server.Controllers
         }
 
         [HttpPut]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Editor)]
         public async Task<IActionResult> Update(Restaurant restaurant)
         {
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved!" });
+            }
+
             restaurant.Grade = CalculateRestaurantGrade(restaurant);
             var result = await _restaurantRepository.UpdateRestaurant(restaurant.Id, restaurant);
 
@@ -100,9 +115,14 @@ namespace LunchBreak.Server.Controllers
 
         [HttpDelete]
         [Route("remove/{restaurantId}")]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Editor)]
         public async Task<IActionResult> Delete(string restaurantId)
         {
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved" });
+            }
+
             var result = await _restaurantRepository.RemoveRestaurant(restaurantId);
 
             if (result)

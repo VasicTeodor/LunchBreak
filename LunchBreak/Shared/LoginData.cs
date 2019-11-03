@@ -5,7 +5,7 @@ namespace LunchBreak.Shared
     public class LoginData
     {
         [Required]
-        [StringLength(16, ErrorMessage = "Identifier too long (16 character limit).")]
+        [StringLength(16, ErrorMessage = "Username too long (16 character limit).")]
         public string Username { get; set; }
         [Required]
         [MinLength(8, ErrorMessage = "Password must be 8 characters long.")]

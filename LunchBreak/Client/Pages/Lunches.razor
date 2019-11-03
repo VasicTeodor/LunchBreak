@@ -12,7 +12,7 @@
                     <h2 class="ml-2">All Lunches</h2>
                 </div>
                 <div class="row align-items-center">
-                    <div class="col-xl-12 col-12">
+                    <div class="col-xl-12 col-12 text-center">
                         <h3 class="text-muted text-center mb-3">List of lunches</h3>
                         @if (lunches == null)
                         {
@@ -27,6 +27,15 @@
                         }
                         else
                         {
+                                <div class="form-inline md-form form-sm w-75 my-2 ml-auto">
+                                    <input class="form-control w-75" type="text" placeholder="Search" @bind-value="@searchString" aria-label="Search by name" />
+                                    @if (!string.IsNullOrEmpty(searchString))
+                                    {
+                                        <i class="fas fa-times fa-2x ml-2 text-danger" style="cursor: pointer;" aria-hidden="true" @onclick="@(() => ResetSearchString())"></i>
+                                    }
+                                    <i class="fas fa-search fa-2x ml-2" style="cursor: pointer;" aria-hidden="true" @onclick="@(() => GetLunches(paginationDataInfo.PageNumber, paginationDataInfo.PageSize))"></i>
+                                </div>
+
                             <table class="table table-dark table-hover text-center">
                                 <thead>
                                     <tr class="text-muted">
@@ -37,6 +46,10 @@
                                         <th>Valid To</th>
                                         <th>Website</th>
                                         <th>Status</th>
+                                        @if (isAdmin)
+                                        {
+                                            <th></th>
+                                        }
                                         <th></th>
                                         <th></th>
                                     </tr>
@@ -65,9 +78,18 @@
                                             }
                                             @if (isAdmin)
                                             {
-                                                <td>
-                                                    <p class="text-danger font-weight-bold" style="cursor: pointer" @onclick="@(async () => await ApproveLunch(lunch.Id))"><u>Approve</u></p>
-                                                </td>
+                                                @if (lunch.Approved)
+                                                {
+                                                    <td>
+                                                        <span class="badge badge-success w-75 py-2">Approved</span>
+                                                    </td>
+                                                }
+                                                else
+                                                {
+                                                    <td>
+                                                        <span class="badge badge-danger w-75 py-2">Not Approved</span>
+                                                    </td>
+                                                }
                                             }
                                             @if (isAdmin || userId == lunch.CreatedBy)
                                             {
@@ -85,16 +107,43 @@
                             <!-- pagination -->
                             <nav>
                                 <ul class="pagination justify-content-center">
-                                    <li class="page-item">
-                                        <a href="#" class="page-link py-2 px-3">
-                                            <span>Previous</span>
-                                        </a>
+                                    @if (paginationDataInfo.PageNumber <= 1)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetLunches(paginationDataInfo.PageNumber-1,paginationDataInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    <li class="page-item active">
+                                        <p class="page-link py-2 px-3">
+                                            @paginationDataInfo.PageNumber
+                                        </p>
                                     </li>
-                                    <li class="page-item">
-                                        <a href="#" class="page-link py-2 px-3">
-                                            <span>Next</span>
-                                        </a>
-                                    </li>
+                                    @if (paginationDataInfo.PageNumber * paginationDataInfo.PageSize >= paginationDataInfo.NumberOfItems)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetLunches(paginationDataInfo.PageNumber+1,paginationDataInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
                                 </ul>
                             </nav>
                             <!-- end of pagination -->
@@ -117,7 +166,9 @@
     private string error = "";
     private bool isAdmin = false;
     private bool isEditor = false;
+    private string searchString = "";
     private string userId = "";
+    private PaginationDataInfo paginationDataInfo = new PaginationDataInfo() { PageNumber = 1, PageSize = 7 };
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,13 +176,34 @@
         isEditor = await AuthService.IsUserEditor();
         userId = await AuthService.GetUserId();
 
-        var response = await HttpRequest.HttpGet<GetLunches>("api/lunchbreak/lunches");
+        await GetLunches(1, 7);
+    }
+
+    private void ResetSearchString()
+    {
+        searchString = "";
+    }
+
+    private async Task GetLunches(int pageNumber = 1, int pageSize = 7)
+    {
+        var url = $"api/lunchbreak/lunches?search={searchString}";
+
+        var pagination = new PaginationDataInfo() { PageNumber = pageNumber, PageSize = pageSize };
+
+        if(isAdmin)
+        {
+            url = $"api/lunchbreak/lunches?isAdmin=true&search={searchString}";
+        }
+
+        var response = await HttpRequest.HttpGet<GetLunches>(url, pagination);
 
         if (response != null)
         {
             if (response.Successful)
             {
+                lunches = null;
                 lunches = response.Lunches;
+                paginationDataInfo = response.PaginationInfo;
             }
             else
             {
@@ -158,33 +230,6 @@
             else
             {
                 error = response.Error;
-            }
-        }
-        else
-        {
-            await Alertify.Error("There was an error");
-        }
-    }
-
-    private async Task ApproveLunch(string lunchId)
-    {
-        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approvelunch/{lunchId}","");
-
-        if (response != null)
-        {
-            if (response.Successful)
-            {
-                lunches = null;
-                await Alertify.Success("Lunch break approved");
-                await OnInitializedAsync();
-                this.StateHasChanged();
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(response.Error))
-                {
-                    error = response.Error;
-                }
             }
         }
         else

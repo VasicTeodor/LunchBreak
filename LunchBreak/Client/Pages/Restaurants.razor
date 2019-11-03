@@ -16,14 +16,23 @@
                             </div>
                         </div>
                         <div class="row align-items-center">
-                            <div class="col-xl-12 col-12">
-                                <h3 class="text-muted text-center mb-3">List of lunches</h3>
+                            <div class="col-xl-12 col-12 text-center">
+                                <h3 class="text-muted text-center mb-3">List of restaurants</h3>
                                 @if (restaurants == null)
                                 {
                                     <h4 class="text-center">Loading...</h4>
                                 }
                                 else
                                 {
+                                        <div class="form-inline md-form form-sm w-75 my-2 ml-auto">
+                                            <input class="form-control w-75" type="text" placeholder="Search" @bind-value="@searchString" aria-label="Search by name"/>
+                                            @if (!string.IsNullOrEmpty(searchString))
+                                            {
+                                                <i class="fas fa-times fa-2x ml-2 text-danger" style="cursor: pointer" aria-hidden="true" @onclick="@(() => ResetSearchString())"></i>
+                                            }
+                                            <i class="fas fa-search fa-2x ml-2" style="cursor: pointer" aria-hidden="true" @onclick="@(() => GetRestaurants(paginationDataInfo.PageNumber, paginationDataInfo.PageSize))"></i>
+                                        </div>
+
                                     <table class="table table-dark table-hover text-center">
                                         <thead>
                                             <tr class="text-muted">
@@ -33,64 +42,107 @@
                                                 <th>Address</th>
                                                 <th>Website</th>
                                                 <th>Grade</th>
-                                                <th></th>
-                                                <th></th>
+                                                @if (isAdmin)
+                                                {
+                                                    <th></th>
+                                                    <th></th>
+                                                }
+                                                @if (isEditor)
+                                                {
+                                                    <th></th>
+                                                }
                                                 <th></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach (var restaurant in restaurants)
                                             {
-                                            <tr>
-                                                <th>@restaurant.Name</th>
-                                                <td>@restaurant.Email</td>
-                                                <td>@restaurant.Phone</td>
-                                                <td>@restaurant.Address</td>
-                                                <td>@restaurant.Website</td>
-                                                @if (restaurant.Grade > 5)
-                                                {
-                                                    <td>
-                                                        <span class="badge badge-success w-75 py-2">@restaurant.Grade / 10</span>
-                                                    </td>
-                                                }
-                                                else
-                                                {
-                                                    <td>
-                                                        <span class="badge badge-danger w-75 py-2">@restaurant.Grade / 10</span>
-                                                    </td>
-                                                }
-                                                @if (isAdmin)
-                                                {
-                                                    <td>
-                                                        <p class="text-danger font-weight-bold" style="cursor: pointer" @onclick="@(async () => await ApproveRestaurant(restaurant.Id))"><u>Approve</u></p>
-                                                    </td>
-                                                }
-                                                @if (isEditor)
-                                                {
-                                                    <td class="p-1">
+                                                <tr>
+                                                    <th>@restaurant.Name</th>
+                                                    <td>@restaurant.Email</td>
+                                                    <td>@restaurant.Phone</td>
+                                                    <td>@restaurant.Address</td>
+                                                    <td>@restaurant.Website</td>
+                                                    @if (restaurant.Grade > 5)
+                                                    {
+                                                        <td>
+                                                            <span class="badge badge-success w-75 py-2">@restaurant.Grade / 10</span>
+                                                        </td>
+                                                    }
+                                                    else
+                                                    {
+                                                        <td>
+                                                            <span class="badge badge-danger w-75 py-2">@restaurant.Grade / 10</span>
+                                                        </td>
+                                                    }
+                                                    @if (isAdmin)
+                                                    {
+                                                        @if (restaurant.Approved)
+                                                        {
+                                                            <td>
+                                                                <span class="badge badge-success w-75 py-2">Approved</span>
+                                                            </td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>
+                                                                <span class="badge badge-danger w-75 py-2">Not Approved</span>
+                                                            </td>
+                                                        }
+                                                    }
+                                                    @if (isEditor)
+                                                    {
+                                                        <td class="p-1">
                                                             <i class="fas fa-times fa-2x text-danger" style="cursor: pointer" @onclick="@(async () => await RemoveRestaurant(restaurant.Id))"></i>
+                                                        </td>
+                                                    }
+                                                    <td class="p-1">
+                                                        <i class="fas fa-search-plus fa-2x text-primary" style="cursor: pointer" @onclick="@(() => RestaurantDetails(restaurant.Id))"></i>
                                                     </td>
-                                                }
-                                                <td class="p-1">
-                                                    <i class="fas fa-search-plus fa-2x text-primary" style="cursor: pointer" @onclick="@(() => RestaurantDetails(restaurant.Id))"></i>
-                                                </td>
-                                            </tr>
+                                                </tr>
                                             }
                                         </tbody>
                                     </table>
                                     <!-- pagination -->
                                     <nav>
                                         <ul class="pagination justify-content-center">
-                                            <li class="page-item">
-                                                <a href="#" class="page-link py-2 px-3">
-                                                    <span>Previous</span>
-                                                </a>
+                                            @if (paginationDataInfo.PageNumber <= 1)
+                                            {
+                                                <li class="page-item disabled" style="cursor: pointer;">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Previous</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetRestaurants(paginationDataInfo.PageNumber-1,paginationDataInfo.PageSize))">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Previous</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            <li class="page-item active">
+                                                <p class="page-link py-2 px-3">
+                                                    @paginationDataInfo.PageNumber
+                                                </p>
                                             </li>
-                                            <li class="page-item">
-                                                <a href="#" class="page-link py-2 px-3">
-                                                    <span>Next</span>
-                                                </a>
-                                            </li>
+                                            @if (paginationDataInfo.PageNumber * paginationDataInfo.PageSize > paginationDataInfo.NumberOfItems)
+                                            {
+                                                <li class="page-item disabled" style="cursor: pointer;">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Next</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetRestaurants(paginationDataInfo.PageNumber+1,paginationDataInfo.PageSize))">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Next</span>
+                                                    </p>
+                                                </li>
+                                            }
                                         </ul>
                                     </nav>
                                     <!-- end of pagination -->
@@ -98,7 +150,7 @@
                             </div>
                         </div>
                         <hr />
-                        @if (isAdmin)
+                        @if (isEditor)
                         {
                             <div class="row justify-content-center text-center">
                                 <div class="col-4">
@@ -116,21 +168,44 @@
 @code {
     private List<RestaurantDto> restaurants;
     private string error = "";
+    private string searchString = "";
     private bool isEditor = false;
     private bool isAdmin = false;
+    private PaginationDataInfo paginationDataInfo = new PaginationDataInfo() { PageNumber = 1, PageSize = 7 };
 
     protected override async Task OnInitializedAsync()
     {
         isEditor = await AuthService.IsUserEditor();
         isAdmin = await AuthService.IsUserAdmin();
 
-        var response = await HttpRequest.HttpGet<GetRestaurants>("api/restaurant/restaurants");
+        await GetRestaurants(1, 7);
+    }
+
+    private void ResetSearchString()
+    {
+        searchString = "";
+    }
+
+    private async Task GetRestaurants(int pageNumber = 1, int pageSize = 7)
+    {
+        var url = $"api/restaurant/restaurants?search={searchString}";
+        
+        var pagination = new PaginationDataInfo() { PageNumber = pageNumber, PageSize = pageSize };
+
+        if(isAdmin)
+        {
+            url = $"api/restaurant/restaurants?isAdmin=true&search={searchString}";
+        }
+
+        var response = await HttpRequest.HttpGet<GetRestaurants>(url, pagination);
 
         if (response != null)
         {
             if (response.Successful)
             {
+                restaurants = null;
                 restaurants = response.Restaurants;
+                paginationDataInfo = response.PaginationInfo;
             }
             else
             {
@@ -163,25 +238,6 @@
         else
         {
             await Alertify.Error("There was an error");
-        }
-    }
-
-    private async Task ApproveRestaurant(string restaurantId)
-    {
-        var response = await HttpRequest.HttpPut<OperationSuccessResponse>($"api/admin/approverestaurant/{restaurantId}","");
-        Console.WriteLine(response);
-        if (response.Successful)
-        {
-            restaurants = null;
-            await OnInitializedAsync();
-            this.StateHasChanged();
-        }
-        else
-        {
-            if (!string.IsNullOrEmpty(response.Error))
-            {
-                error = response.Error;
-            }
         }
     }
 

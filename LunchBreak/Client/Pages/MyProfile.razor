@@ -98,7 +98,7 @@
 
         var userId = await localStorage.GetItemAsync<string>("lunchBreakId");
 
-        var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{userId}");
+        var response = await HttpRequest.HttpGet<GetUser>($"api/users/user/{userId}","");
 
         if(response != null)
         {

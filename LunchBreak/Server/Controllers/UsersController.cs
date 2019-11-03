@@ -28,6 +28,7 @@ namespace LunchBreak.Server.Controllers
         
         [HttpGet]
         [Route("user/{userId}")]
+        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> GetUser(string userId)
         {
             var result = await _userRepository.GetUser(userId);
@@ -45,14 +46,18 @@ namespace LunchBreak.Server.Controllers
 
         [HttpGet]
         [Route("allusers")]
-        public async Task<IActionResult> GetUsers()
+        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        public async Task<IActionResult> GetUsers([FromQuery]PaginationDataInfo paginationInfo)
         {
-            var result = await _userRepository.GetUsers();
+            var pagination = _mapper.Map<PaginationData<User>>(paginationInfo);
 
-            if(result != null)
+            var result = await _userRepository.GetUsers(pagination);
+
+            if(result.Items != null)
             {
-                var resultToReturn = _mapper.Map<List<UserRegisterDTO>>(result);
-                return Ok(new GetUsers() { Successful = true, Users = resultToReturn });
+                var resultToReturn = _mapper.Map<List<UserRegisterDTO>>(result.Items);
+
+                return Ok(new GetUsers() { Successful = true, Users = resultToReturn, PaginationInfo = _mapper.Map<PaginationDataInfo>(result) });
             }
             else
             {
@@ -61,6 +66,7 @@ namespace LunchBreak.Server.Controllers
         }
 
         [HttpPut]
+        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> UpdateProfile(User user)
         {
             var result = await _userRepository.UpdateUser(user.Id, user);
@@ -77,6 +83,7 @@ namespace LunchBreak.Server.Controllers
 
         [HttpPut]
         [Route("uploadprofileimage")]
+        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> UploadProfileImage([FromQuery]string userId, PictureData picture)
         {
             var user = await _userRepository.GetUser(userId);
@@ -101,6 +108,7 @@ namespace LunchBreak.Server.Controllers
 
         [HttpPut]
         [Route("uploaddocumentimage")]
+        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> UploadDocumentImage([FromQuery]string userId, PictureData picture)
         {
             var user = await _userRepository.GetUser(userId);
@@ -125,7 +133,7 @@ namespace LunchBreak.Server.Controllers
 
         [HttpDelete]
         [Route("remove/{userId}")]
-        [Authorize(Policy = HelperAuth.Constants.Policy.User)]
+        [Authorize(Policy = HelperAuth.Constants.Policy.Admin)]
         public async Task<IActionResult> Delete(string userId)
         {
             var result = await _userRepository.RemoveUser(userId);

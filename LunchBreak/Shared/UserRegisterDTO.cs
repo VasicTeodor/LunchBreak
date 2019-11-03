@@ -9,10 +9,10 @@ namespace LunchBreak.Shared
     public class UserRegisterDTO
     {
         [Required]
-        [StringLength(16, ErrorMessage = "Identifier too long (16 character limit).")]
+        [StringLength(16, ErrorMessage = "Username too long (16 character limit).")]
         public string Username { get; set; }
         [Required]
-        [StringLength(25, ErrorMessage = "Identifier too long (25 character limit).")]
+        [StringLength(25, ErrorMessage = "Name too long (25 character limit).")]
         public string Name { get; set; }
         [Required]
         [EmailAddress(ErrorMessage = "Please enter valid email address.")]
@@ -26,6 +26,7 @@ namespace LunchBreak.Shared
         public string ConfirmPassword { get; set; }
         public string Id { get; set; }
         public string TeamId { get; set; }
+        public bool Approved { get; set; }
         public Image ProfilePicture { get; set; }
         public Image DocumentPicture { get; set; }
     }

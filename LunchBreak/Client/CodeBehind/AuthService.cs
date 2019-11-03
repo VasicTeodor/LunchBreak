@@ -19,14 +19,16 @@ namespace LunchBreak.Client.CodeBehind
         private readonly ILocalStorageService _localStorage;
         private readonly IHttpRequest _httpRequest;
         private readonly IJSRuntime _jsRuntime;
+        private readonly IAlertify _alertify;
 
         public AuthService(HttpClient httpClient,
-            ILocalStorageService localStorage, IHttpRequest httpRequest, IJSRuntime jsRuntime)
+            ILocalStorageService localStorage, IHttpRequest httpRequest, IJSRuntime jsRuntime, IAlertify alertify)
         {
             _httpClient = httpClient;
             _localStorage = localStorage;
             _httpRequest = httpRequest;
             _jsRuntime = jsRuntime;
+            _alertify = alertify;
         }
 
         public async Task<string> GetUser()
@@ -59,20 +61,34 @@ namespace LunchBreak.Client.CodeBehind
             return result;
         }
 
+        public async Task<bool> IsUserApporved()
+        {
+            var result = await _jsRuntime.InvokeAsync<bool>("UserApproved");
+            return result;
+        }
+
         public async Task<LoginResult> Login(LoginData loginModel)
         {
-            var response = await _httpClient.PostJsonAsync<LoginResult>("api/authorization/login", loginModel);
-            if (response.Successful)
+            try
             {
-                await _localStorage.SetItemAsync("authToken", response.Token);
-                await _localStorage.SetItemAsync("lunchBreakId", response.Id);
-                await _localStorage.SetItemAsync("lunchBreakUser", response.Username);
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", response.Token);
+                var response = await _httpClient.PostJsonAsync<LoginResult>("api/authorization/login", loginModel);
+                if (response.Successful)
+                {
+                    await _localStorage.SetItemAsync("authToken", response.Token);
+                    await _localStorage.SetItemAsync("lunchBreakId", response.Id);
+                    await _localStorage.SetItemAsync("lunchBreakApprovedUser", response.ApprovedAccount);
+                    await _localStorage.SetItemAsync("lunchBreakUser", response.Username);
+                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", response.Token);
 
+                    return response;
+                }
                 return response;
             }
-
-            return response;
+            catch(Exception)
+            {
+                await _alertify.Error("Wrong username or password");
+                throw;
+            }
         }
 
         public async Task Logout()
@@ -80,16 +96,23 @@ namespace LunchBreak.Client.CodeBehind
             await _localStorage.RemoveItemAsync("authToken");
             await _localStorage.RemoveItemAsync("lunchBreakId");
             await _localStorage.RemoveItemAsync("lunchBreakUser");
+            await _localStorage.RemoveItemAsync("lunchBreakApprovedUser");
             _httpClient.DefaultRequestHeaders.Authorization = null;
             await _jsRuntime.InvokeVoidAsync("LogOut");
         }
 
         public async Task<RegisterResult> Register(UserRegisterDTO registerModel)
         {
-            var response = await _httpRequest.HttpPost<RegisterResult>("api/authorization/register", registerModel);
-            Console.WriteLine(registerModel);
-            Console.WriteLine(response);
-            return response;
+            try
+            {
+                var response = await _httpRequest.HttpPost<RegisterResult>("api/authorization/register", registerModel);
+                return response;
+            }
+            catch(Exception)
+            {
+                await _alertify.Error("There was error while registering");
+                throw;
+            }
         }
     }
 }

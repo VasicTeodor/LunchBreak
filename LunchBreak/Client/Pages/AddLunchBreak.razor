@@ -133,10 +133,12 @@
     private OrderDto order = new OrderDto() { Id = Guid.NewGuid().ToString() };
     private List<RestaurantDto> restaurants;
     private string error = null;
+    private bool userApproved = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await HttpRequest.HttpGet<GetRestaurants>("api/restaurant/restaurants");
+        userApproved = await AuthService.IsUserApporved();
+        var response = await HttpRequest.HttpGet<GetRestaurants>("api/restaurant/restaurants", "");
 
         if (response == null)
         {
@@ -157,6 +159,12 @@
 
     private async void HandleValidSubmit()
     {
+        if (!userApproved)
+        {
+            await Alertify.Error("Your account is not approved. Please log out, and try again later.");
+            return;
+        }
+
         if (!string.IsNullOrEmpty(order.OrderText))
         {
             order.UserId = await AuthService.GetUserId();

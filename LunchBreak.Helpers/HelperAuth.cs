@@ -106,13 +106,14 @@ namespace LunchBreak.Helpers
             return new ClaimsIdentity(new GenericIdentity(name, "Token"), claims);
         }
 
-        public static LoginResult GenerateJwt(ClaimsIdentity identity, JwtOptions jwtIssuerOptions)
+        public static LoginResult GenerateJwt(ClaimsIdentity identity, JwtOptions jwtIssuerOptions, bool approved)
         {
             var response = new LoginResult()
             {
                 Id = identity.Claims.Single(c => c.Type == Constants.Claims.Id).Value,
                 Token = GenerateEncodedToken(identity, jwtIssuerOptions),
                 ExpiresIn = (int)jwtIssuerOptions.ValidFor.TotalSeconds,
+                ApprovedAccount = approved,
                 Username = identity.Claims.Single(c => c.Type == Constants.Claims.Name).Value,
                 Successful = true
             };

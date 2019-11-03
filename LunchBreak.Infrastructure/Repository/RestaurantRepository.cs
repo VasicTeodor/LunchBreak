@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using LunchBreak.Helpers;
 using LunchBreak.Infrastructure.DatabaseSettings;
 using LunchBreak.Infrastructure.Entities;
 using LunchBreak.Infrastructure.Interfaces;
@@ -21,15 +22,29 @@ namespace LunchBreak.Infrastructure.Repository
 
             _restaurants = database.GetCollection<Restaurant>(_collectionName);
         }
-        public async Task<List<Restaurant>> GetRestaurants(bool isAdmin = false)
+        public async Task<PaginationData<Restaurant>> GetRestaurants(string search, bool isAdmin = false, PaginationData<Restaurant> paginationData = null)
         {
+            var pagination = paginationData ?? new PaginationData<Restaurant>() { PageSize = 5, PageNumber = 1 };
+            var searchString = search ?? "";
             if (isAdmin)
             {
-                return await _restaurants.Find(restaurant => true).ToListAsync();
+                return new PaginationData<Restaurant>
+                {
+                    Items = await _restaurants.Find(restaurant => restaurant.Name.ToLower().Contains(searchString.ToLower()))
+                                        .Skip((pagination.PageNumber - 1) * pagination.PageSize).Limit(pagination.PageSize).ToListAsync(),
+                    NumberOfItems = Convert.ToInt32(await _restaurants.CountDocumentsAsync(doc => true)),
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+                //return await _restaurants.Find(restaurant => restaurant.Name.ToLower().Contains(searchString.ToLower())).ToListAsync();
             }
             else
             {
-                return await _restaurants.Find(restaurant => restaurant.Approved == true).ToListAsync();
+                return new PaginationData<Restaurant>{ Items = await _restaurants.Find(restaurant => restaurant.Approved == true && restaurant.Name.ToLower().Contains(searchString.ToLower()))
+                                                         .Skip((pagination.PageNumber - 1) * pagination.PageSize).Limit(pagination.PageSize).ToListAsync(),
+                                                            NumberOfItems = Convert.ToInt32(await _restaurants.CountDocumentsAsync(doc => doc.Approved == true)), 
+                                                            PageNumber = pagination.PageNumber, PageSize = pagination.PageSize};
+                //return await _restaurants.Find(restaurant => restaurant.Approved == true && restaurant.Name.ToLower().Contains(searchString.ToLower())).ToListAsync();
             }
         }
         public async Task<Restaurant> GetRestaurant(string restaurantId) => await _restaurants.Find(restaurant => restaurant.Id.Equals(restaurantId)).FirstOrDefaultAsync();
@@ -65,6 +80,11 @@ namespace LunchBreak.Infrastructure.Repository
                 Trace.WriteLine($"Error while saving changes: {e.Message}", "ERROR");
                 return false;
             }
+        }
+
+        public async Task<List<Restaurant>> GetRestaurantsAdmin()
+        {
+            return await _restaurants.Find(restaurant => true).ToListAsync();
         }
     }
 }

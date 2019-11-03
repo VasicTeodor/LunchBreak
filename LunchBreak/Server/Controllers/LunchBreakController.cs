@@ -6,6 +6,7 @@ using AutoMapper;
 using LunchBreak.Helpers;
 using LunchBreak.Infrastructure.Entities;
 using LunchBreak.Infrastructure.Interfaces;
+using LunchBreak.Server.Extensions;
 using LunchBreak.Shared;
 using LunchBreak.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -50,14 +51,17 @@ namespace LunchBreak.Server.Controllers
         [HttpGet]
         [Route("lunches")]
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]
-        public async Task<IActionResult> Get([FromQuery]bool isAdmin = false)
+        public async Task<IActionResult> Get([FromQuery]PaginationDataInfo paginationInfo, [FromQuery]string search = "", [FromQuery]bool isAdmin = false)
         {
-            var result = await _lunchRepository.GetLunches(isAdmin);
+            var pagination = _mapper.Map<PaginationData<Lunch>>(paginationInfo);
+
+            var result = await _lunchRepository.GetLunches(search, isAdmin, pagination);
             
-            if (result != null)
+            if (result.Items != null)
             {
-                var resultToReturn = _mapper.Map<List<LunchDto>>(result);
-                return Ok(new GetLunches() { Successful = true, Lunches = resultToReturn});
+                var resultToReturn = _mapper.Map<List<LunchDto>>(result.Items);
+
+                return Ok(new GetLunches() { Successful = true, Lunches = resultToReturn, PaginationInfo = _mapper.Map<PaginationDataInfo>(result)});
             }
             else
             {
@@ -69,7 +73,12 @@ namespace LunchBreak.Server.Controllers
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> Post(Lunch lunch)
         {
-            if(lunch.IsPublic == "Private")
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved" });
+            }
+
+            if (lunch.IsPublic == "Private")
             {
                 var user = await _userRepository.GetUser(lunch.CreatedBy);
                 if (!string.IsNullOrEmpty(user.TeamId))
@@ -96,6 +105,11 @@ namespace LunchBreak.Server.Controllers
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> Update(Lunch lunch)
         {
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved" });
+            }
+
             lunch.TotalPrice = CalculateTotalPrice(lunch);
             var result = await _lunchRepository.UpdateLunch(lunch.Id, lunch);
 
@@ -114,6 +128,11 @@ namespace LunchBreak.Server.Controllers
         [Authorize(Policy = HelperAuth.Constants.Policy.User)]
         public async Task<IActionResult> Delete(string lunchId)
         {
+            if (!(await User.UserApproved(_userRepository)))
+            {
+                return BadRequest(new OperationSuccessResponse() { Successful = false, Error = "User not approved" });
+            }
+
             var result = await _lunchRepository.RemoveLunch(lunchId);
 
             if (result)

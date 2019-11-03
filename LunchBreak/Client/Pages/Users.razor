@@ -30,7 +30,10 @@
                                                 <th>Name</th>
                                                 <th>Username</th>
                                                 <th>Email</th>
-                                                <th></th>
+                                                @if (isAdmin)
+                                                {
+                                                    <th></th>
+                                                }
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -57,16 +60,43 @@
                                     <!-- pagination -->
                                     <nav>
                                         <ul class="pagination justify-content-center">
-                                            <li class="page-item">
-                                                <a href="#" class="page-link py-2 px-3">
-                                                    <span>Previous</span>
-                                                </a>
+                                            @if (paginationDataInfo.PageNumber <= 1)
+                                            {
+                                                <li class="page-item disabled" style="cursor: pointer;">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Previous</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetUsers(paginationDataInfo.PageNumber-1,paginationDataInfo.PageSize))">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Previous</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            <li class="page-item active">
+                                                <p class="page-link py-2 px-3">
+                                                    @paginationDataInfo.PageNumber
+                                                </p>
                                             </li>
-                                            <li class="page-item">
-                                                <a href="#" class="page-link py-2 px-3">
-                                                    <span>Next</span>
-                                                </a>
-                                            </li>
+                                            @if (paginationDataInfo.PageNumber * paginationDataInfo.PageSize >= paginationDataInfo.NumberOfItems)
+                                            {
+                                                <li class="page-item disabled" style="cursor: pointer;">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Next</span>
+                                                    </p>
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetUsers(paginationDataInfo.PageNumber+1,paginationDataInfo.PageSize))">
+                                                    <p class="page-link py-2 px-3">
+                                                        <span>Next</span>
+                                                    </p>
+                                                </li>
+                                            }
                                         </ul>
                                     </nav>
                                     <!-- end of pagination -->
@@ -84,18 +114,28 @@
     private List<UserRegisterDTO> users;
     private string error = "";
     private bool isAdmin = false;
+    private PaginationDataInfo paginationDataInfo = new PaginationDataInfo() { PageNumber = 1, PageSize = 7 };
 
     protected override async Task OnInitializedAsync()
     {
         isAdmin = await AuthService.IsUserAdmin();
 
-        var response = await HttpRequest.HttpGet<GetUsers>("api/users/allusers");
+        await GetUsers(1, 7);
+    }
+
+    private async Task GetUsers(int pageNumber, int pageSize)
+    {
+        var pagination = new PaginationDataInfo() { PageNumber = pageNumber, PageSize = pageSize };
+
+        var response = await HttpRequest.HttpGet<GetUsers>("api/users/allusers",pagination);
 
         if(response != null)
         {
             if (response.Successful)
             {
+                users = null;
                 users = response.Users;
+                paginationDataInfo = response.PaginationInfo;
             }
             else
             {

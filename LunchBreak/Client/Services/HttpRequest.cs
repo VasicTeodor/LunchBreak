@@ -13,11 +13,15 @@ namespace LunchBreak.Client.Services
             _jsRuntime = jsRuntime;
             _alertify = alertify;
         }
-        public async Task<T> HttpGet<T>(string url)
+        public async Task<T> HttpGet<T>(string url, object data = null)
         {
             try
             {
-                return (await _jsRuntime.InvokeAsync<T>("HttpGet", url));
+                if (data == null)
+                {
+                    data = new { noData = true };
+                }
+                return (await _jsRuntime.InvokeAsync<T>("HttpGet", url, data));
             }
             catch (System.Exception)
             {

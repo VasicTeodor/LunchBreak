@@ -8,6 +8,7 @@
         public string Email { get; set; }
         public string Name { get; set; }
         public string Role { get; set; }
+        public bool Approved { get; set; }
         public Image ProfilePicture { get; set; }
         public Image DocumentPicture { get; set; }
     }

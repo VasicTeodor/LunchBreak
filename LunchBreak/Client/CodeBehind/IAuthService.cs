@@ -13,5 +13,6 @@ namespace LunchBreak.Client.CodeBehind
         Task<bool> IsUserAdmin();
         Task<bool> IsUserEditor();
         Task<bool> IsUser();
+        Task<bool> IsUserApporved();
     }
 }

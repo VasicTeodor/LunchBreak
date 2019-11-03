@@ -39,6 +39,11 @@ window.CheckIsUserEditor = () => {
     }
 };
 
+window.UserApproved = () => {
+    let isApproved = localStorage.getItem("lunchBreakApprovedUser") === 'true';
+    return isApproved;
+};
+
 window.LogOut = () => {
     window.location.reload();
 };

@@ -1,11 +1,32 @@
-﻿window.HttpGet = async function (urlAddress, urlData) {
+﻿window.HttpGet = async function (urlAddress, object = null) {
     let token = localStorage.getItem("authToken");
     console.log(token);
     //, "Authorization": "Bearer " + token
-    
+    let formData = "";
+    let url = urlAddress;
     console.log(jwt_decode(token));
+    console.log(urlAddress);
 
-    const response = await fetch(urlAddress, {
+    if (object !== "" && object !== null && object !== undefined) {
+        if (!object.noData) {
+            this.console.log(object);
+            Object.keys(object).forEach(function(key, index) {
+                console.log(key);
+                console.log(object[key]);
+                formData = formData + key + "=" + object[key] + "&";
+            });
+            if (urlAddress.includes('?')) {
+                url = url + '&' + formData;
+            } else {
+                url = url + '?' + formData;
+            }
+            url = url.slice(0, -1);
+            this.console.log(formData);
+            this.console.log(url);
+        }
+    }
+
+    const response = await fetch(url, {
         method: "GET",
         cache: "no-cache",
         headers: {
@@ -13,7 +34,6 @@
             "Authorization": "Bearer " + JSON.parse(token)
             // "Content-Type": "application/x-www-form-urlencoded",
         }
-        //body: JSON.stringify(object)
     }).then(function (data) {
         console.log(data);
         return data.json();

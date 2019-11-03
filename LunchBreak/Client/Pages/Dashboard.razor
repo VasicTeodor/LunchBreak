@@ -3,20 +3,24 @@
 @inject IAlertify Alertify
 @inject IAuthService AuthService
 
-<Cards></Cards>
+@if (isAdmin)
+{
+    <Cards></Cards>
+}
+
 <section>
     <div class="container-fluid">
-        <div class="row mb-5">
+        <div class="row mb-2">
             <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
                 <div class="row align-items-center">
                     <div class="col-xl-12 col-12">
-                        <h3 class="text-muted text-center mb-3">List of lunches</h3>
-                        @if(lunches == null)
+                        @if (lunches == null)
                         {
                             <h4 class="text-center">Loading...</h4>
                         }
                         else
                         {
+                        <h3 class="text-muted text-center mb-3">List of lunches</h3>
                             <table class="table table-dark table-hover text-center">
                                 <thead>
                                     <tr class="text-muted">
@@ -30,47 +34,168 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach(var lunch in lunches)
+                                    @foreach (var lunch in lunches)
                                     {
-                                    <tr>
-                                        <th>@lunch.Name</th>
-                                        <td>@lunch.Restaurant</td>
-                                        <td>@lunch.FreeDelivery</td>
-                                        <td>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</td>
-                                        <td>@lunch.ValidTo.ToString("dddd, dd MMMM yyyy")</td>
-                                        <td>@lunch.LinkToMenu</td>
-                                        @if (lunch.IsPublic.Equals("Public"))
-                                        {
-                                            <td>
-                                                <span class="badge badge-success w-75 py-2">@lunch.IsPublic</span>
-                                            </td>
-                                        }
-                                        else
-                                        {
-                                            <td>
-                                                <span class="badge badge-danger w-75 py-2">@lunch.IsPublic</span>
-                                            </td>
-                                        }
-                                    </tr>
+                                        <tr>
+                                            <th>@lunch.Name</th>
+                                            <td>@lunch.Restaurant</td>
+                                            <td>@lunch.FreeDelivery</td>
+                                            <td>@lunch.ValidFrom.ToString("dddd, dd MMMM yyyy")</td>
+                                            <td>@lunch.ValidTo.ToString("dddd, dd MMMM yyyy")</td>
+                                            <td>@lunch.LinkToMenu</td>
+                                            @if (lunch.IsPublic.Equals("Public"))
+                                            {
+                                                <td>
+                                                    <span class="badge badge-success w-75 py-2">@lunch.IsPublic</span>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>
+                                                    <span class="badge badge-danger w-75 py-2">@lunch.IsPublic</span>
+                                                </td>
+                                            }
+                                        </tr>
                                     }
                                 </tbody>
                             </table>
                             <!-- pagination -->
                             <nav>
                                 <ul class="pagination justify-content-center">
-                                    <li class="page-item">
-                                        <a href="#" class="page-link py-2 px-3">
-                                            <span>Previous</span>
-                                        </a>
+                                    @if (paginationLunchesInfo.PageNumber <= 1)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetLunches(paginationLunchesInfo.PageNumber-1,paginationLunchesInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    <li class="page-item active">
+                                        <p class="page-link py-2 px-3">
+                                            @paginationLunchesInfo.PageNumber
+                                        </p>
                                     </li>
-                                    <li class="page-item">
-                                        <a href="#" class="page-link py-2 px-3">
-                                            <span>Next</span>
-                                        </a>
-                                    </li>
+                                    @if (paginationLunchesInfo.PageNumber * paginationLunchesInfo.PageSize >= paginationLunchesInfo.NumberOfItems)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetLunches(paginationLunchesInfo.PageNumber+1,paginationLunchesInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
                                 </ul>
                             </nav>
                             <!-- end of pagination -->
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-xl-10 col-lg-9 col-md-8 ml-auto">
+                <div class="row align-items-center">
+                    <div class="col-xl-12 col-12">
+                        <h3 class="text-muted text-center mb-3">List of Restaurants</h3>
+                        @if (lunches == null)
+                        {
+                            <h4 class="text-center">Loading...</h4>
+                        }
+                        else
+                        {
+                            <table class="table table-dark table-hover text-center">
+                                <thead>
+                                    <tr class="text-muted">
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Address</th>
+                                        <th>Website</th>
+                                        <th>Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var restaurant in restaurants)
+                                    {
+                                        <tr>
+                                            <th>@restaurant.Name</th>
+                                            <td>@restaurant.Email</td>
+                                            <td>@restaurant.Phone</td>
+                                            <td>@restaurant.Address</td>
+                                            <td>@restaurant.Website</td>
+                                            @if (restaurant.Grade > 5)
+                                            {
+                                                <td>
+                                                    <span class="badge badge-success w-75 py-2">@restaurant.Grade / 10</span>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>
+                                                    <span class="badge badge-danger w-75 py-2">@restaurant.Grade / 10</span>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <!-- pagination -->
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    @if (paginationRestaurantsInfo.PageNumber <= 1)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetRestaurants(paginationRestaurantsInfo.PageNumber - 1, paginationRestaurantsInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Previous</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    <li class="page-item active">
+                                        <p class="page-link py-2 px-3">
+                                            @paginationRestaurantsInfo.PageNumber
+                                        </p>
+                                    </li>
+                                    @if (paginationRestaurantsInfo.PageNumber * paginationRestaurantsInfo.PageSize >= paginationRestaurantsInfo.NumberOfItems)
+                                    {
+                                        <li class="page-item disabled" style="cursor: pointer;">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item" style="cursor: pointer;" @onclick="@(() => GetRestaurants(paginationRestaurantsInfo.PageNumber + 1, paginationRestaurantsInfo.PageSize))">
+                                            <p class="page-link py-2 px-3">
+                                                <span>Next</span>
+                                            </p>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
                         }
                     </div>
                 </div>
@@ -81,24 +206,71 @@
 
 @code {
     private List<LunchDto> lunches;
+    private List<RestaurantDto> restaurants;
     private string error = "";
+    private bool isAdmin = false;
+    private PaginationDataInfo paginationLunchesInfo = new PaginationDataInfo() { PageNumber = 1, PageSize = 3 };
+    private PaginationDataInfo paginationRestaurantsInfo = new PaginationDataInfo() { PageNumber = 1, PageSize = 3 };
 
     protected override async Task OnInitializedAsync()
     {
+        isAdmin = await AuthService.IsUserAdmin();
+        await GetLunches(1, 3);
+        await GetRestaurants(1, 3);
+
+    }
+
+    private async Task GetLunches(int pageNumber, int pageSize)
+    {
         var url = "api/lunchbreak/lunches";
 
-        var isAdmin = await AuthService.IsUserAdmin();
+        var pagination = new PaginationDataInfo() { PageNumber = pageNumber, PageSize = pageSize };
+
         if(isAdmin)
         {
             url = "api/lunchbreak/lunches?isAdmin=true";
         }
 
-        var response = await HttpRequest.HttpGet<GetLunches>(url);
+        var response = await HttpRequest.HttpGet<GetLunches>(url, pagination);
         if (response != null)
         {
             if (response.Successful)
             {
+                lunches = null;
                 lunches = response.Lunches;
+                paginationLunchesInfo = response.PaginationInfo;
+            }
+            else
+            {
+                error = response.Errors.ToList().First();
+            }
+        }
+        else
+        {
+            await Alertify.Error("There was an error");
+        }
+    }
+
+    private async Task GetRestaurants(int pageNumber = 1, int pageSize = 3)
+    {
+        var url = $"api/restaurant/restaurants";
+
+        var pagination = new PaginationDataInfo() { PageNumber = pageNumber, PageSize = pageSize };
+
+        if(isAdmin)
+        {
+            url = $"api/restaurant/restaurants?isAdmin=true";
+        }
+
+        var response = await HttpRequest.HttpGet<GetRestaurants>(url, pagination);
+
+        if (response != null)
+        {
+            if (response.Successful)
+            {
+                restaurants = null;
+                restaurants = response.Restaurants;
+                paginationRestaurantsInfo = response.PaginationInfo;
             }
             else
             {
