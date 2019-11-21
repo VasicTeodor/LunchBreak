@@ -40,12 +40,15 @@
                                 Profile
                             </NavLink>
                         </li>
-                        <li class="nav-item mb-2">
-                            <NavLink class="nav-link text-white" href="users">
-                                <i class="fas fa-users text-light fa-lg mr-3"></i>
-                                Users
-                            </NavLink>
-                        </li>
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item mb-2">
+                                <NavLink class="nav-link text-white" href="users">
+                                    <i class="fas fa-users text-light fa-lg mr-3"></i>
+                                    Users
+                                </NavLink>
+                            </li>
+                        }
                     </ul>
                 </div>
                 <!-- END OF SIDEBAR -->
@@ -78,10 +81,12 @@
 
 @code {
     private string username = "Generic User";
+    private bool isAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
         username = await AuthService.GetUser();
+        isAdmin = await AuthService.IsUserAdmin();
     }
 
     private async Task Logout()

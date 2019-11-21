@@ -153,6 +153,7 @@
             else
             {
                 error = response.Errors.ToList().First();
+                this.StateHasChanged();
             }
         }
     }
@@ -198,6 +199,7 @@
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     error = response.Error;
+                    this.StateHasChanged();
                 }
             }
         }

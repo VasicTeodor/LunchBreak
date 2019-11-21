@@ -243,6 +243,7 @@
             else
             {
                 error = response.Errors.ToList().First();
+                this.StateHasChanged();
             }
         }
         else
@@ -275,6 +276,7 @@
             else
             {
                 error = response.Errors.ToList().First();
+                this.StateHasChanged();
             }
         }
         else

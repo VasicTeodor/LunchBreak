@@ -104,6 +104,7 @@
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     error = response.Error;
+                    this.StateHasChanged();
                 }
             }
         }

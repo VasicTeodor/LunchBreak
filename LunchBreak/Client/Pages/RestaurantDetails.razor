@@ -167,6 +167,7 @@
             else
             {
                 error = response.Errors.ToList().First();
+                this.StateHasChanged();
             }
         }
         else
@@ -191,6 +192,7 @@
             if (!string.IsNullOrEmpty(response.Error))
             {
                 error = response.Error;
+                this.StateHasChanged();
             }
         }
     }
@@ -227,6 +229,7 @@
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     error = response.Error;
+                    this.StateHasChanged();
                 }
             }
         }
@@ -256,6 +259,7 @@
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     error = response.Error;
+                    this.StateHasChanged();
                 }
             }
         }
@@ -284,6 +288,7 @@
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     error = response.Error;
+                    this.StateHasChanged();
                 }
             }
         }
