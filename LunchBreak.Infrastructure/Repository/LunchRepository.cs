@@ -47,7 +47,7 @@ namespace LunchBreak.Infrastructure.Repository
                                         .Skip((pagination.PageNumber - 1) * pagination.PageSize).Limit(pagination.PageSize).ToListAsync(),
                     PageSize = pagination.PageSize,
                     PageNumber = pagination.PageNumber,
-                    NumberOfItems = Convert.ToInt32(await _lunches.CountDocumentsAsync(doc => doc.Approved == true))
+                    NumberOfItems = Convert.ToInt32(await _lunches.CountDocumentsAsync(doc => true))
                 };
                 //return await _lunches.Find(lunch => lunch.Approved == true && lunch.Name.ToLower().Contains(searchString.ToLower())).ToListAsync();
             }

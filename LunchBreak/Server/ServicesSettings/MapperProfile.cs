@@ -21,7 +21,7 @@ namespace LunchBreak.Server.ServicesSettings
                 .ForMember(dest => dest.Text, opt => opt.MapFrom(src => src.Text))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Grade, opt => opt.MapFrom(src => src.Grade))
-                .ForMember(dest => dest.Apporved, opt => opt.MapFrom(src => src.Approved))
+                .ForMember(dest => dest.Approved, opt => opt.MapFrom(src => src.Approved))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.UserName))
                 .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));

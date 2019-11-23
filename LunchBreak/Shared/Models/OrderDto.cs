@@ -6,7 +6,7 @@ namespace LunchBreak.Shared.Models
     {
         public string Id { get; set; }
         [Required]
-        [StringLength(95, ErrorMessage = "Order text too long (95 character limit).")]
+        [StringLength(150, ErrorMessage = "Order text too long (150 character limit).")]
         public string OrderText { get; set; }
         public string Comment { get; set; }
         public decimal Price { get; set; }

@@ -27,7 +27,7 @@
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => Edit())">Edit Lunch</button>
                                     }
-                                    @if ((!onLunch && lunch.IsPublic == "Public" ) || (!onLunch && lunch.IsPublic == "Private" && user.TeamId == lunch.TeamId))
+                                    @if ((!onLunch && lunch.IsPublic == "Public" && lunch.Approved ) || (!onLunch && lunch.IsPublic == "Private" && user.TeamId == lunch.TeamId && lunch.Approved))
                                     {
                                         <button class="btn btn-secondary mr-2" @onclick="@(() => JoinLunch())">Join Lunch</button>
                                     }

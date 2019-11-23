@@ -49,7 +49,7 @@
                                     {
                                         <div class="form-group">
                                             <label for="restaurant">Restaurant:</label>
-                                            <InputSelect class="form-control" id="restaurant" @bind-Value="lunch.RestaurantId">
+                                            <InputSelect class="form-control" id="restaurant" @bind-Value="lunch.RestaurantId" @onchange="() => SetRestaurant()">
                                                 <option value="">Select value ...</option>
                                                 @foreach (var restaurant in restaurants)
                                                 {
@@ -158,6 +158,21 @@
         }
     }
 
+    private void SetRestaurant()
+    {
+        var restaurant = restaurants.FirstOrDefault(r => r.Id == lunch.RestaurantId);
+
+        Console.WriteLine(restaurant);
+
+
+        if(restaurant != null)
+        {
+            lunch.Restaurant = restaurant.Name;
+            lunch.LinkToMenu = restaurant.Website;
+            Console.WriteLine(restaurant);
+        }
+    }
+
     private async void HandleValidSubmit()
     {
         if (!userApproved)
@@ -176,10 +191,14 @@
 
         var restaurant = restaurants.FirstOrDefault(r => r.Id == lunch.RestaurantId);
 
+        Console.WriteLine(restaurant);
+
+
         if(restaurant != null)
         {
             lunch.Restaurant = restaurant.Name;
             lunch.LinkToMenu = restaurant.Website;
+            Console.WriteLine(restaurant);
         }
 
         lunch.CreatedBy = await AuthService.GetUserId();
